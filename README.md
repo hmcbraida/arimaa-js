@@ -1,5 +1,10 @@
 # arimaa-core
 
+This repository is a Typescript implementation of the board game
+Arimaa. You can find out more about Arimma at [https://arimaa.com].
+
+## Installing and running
+
 To install dependencies:
 
 ```bash
