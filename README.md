@@ -1,7 +1,8 @@
 # arimaa-core
 
 This repository is a Typescript implementation of the board game
-Arimaa. You can find out more about Arimma at [https://arimaa.com].
+Arimaa. You can find out more about Arimma at
+[https://arimaa.com](https://arimaa.com).
 
 ## Installing and running
 
