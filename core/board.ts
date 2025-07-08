@@ -1,4 +1,6 @@
-import { type FixedSizeArray } from "../utils/array";
+import type { FixedSizeArray } from "../utils/array";
+
+import { Position } from "./position";
 
 export enum PieceType {
   Rabbit,
@@ -14,6 +16,14 @@ export enum Side {
   Silver,
 }
 
+export function otherSide(side: Side): Side {
+  if (side === Side.Gold) {
+    return Side.Silver;
+  } else {
+    return Side.Gold;
+  }
+}
+
 export interface Piece {
   type: PieceType;
   side: Side;
@@ -24,124 +34,95 @@ export const BLANK: BlankType = -1;
 
 export type SquareContents = Piece | BlankType;
 
-export type Board = FixedSizeArray<8, FixedSizeArray<8, SquareContents>>;
+export type BoardArray = FixedSizeArray<8, FixedSizeArray<8, SquareContents>>;
 
-export interface Position {
-  x: number;
-  y: number;
-}
+export class Board {
+  boardArray: BoardArray;
 
-type GetPieceType = SquareContents | null;
-
-export function getPieceAt(board: Board, position: Position): GetPieceType {
-  let row = board[position.x];
-
-  if (!row) {
-    return null;
+  constructor(boardArray: BoardArray) {
+    this.boardArray = boardArray;
   }
 
-  let value = row[position.y];
-
-  if (!value) {
-    return null;
-  }
-
-  return value;
-}
-
-export function writePieceAt(
-  board: Board,
-  position: Position,
-  value: SquareContents,
-) {
-  function inBounds(val: number): boolean {
-    return val >= 0 && val < 8;
-  }
-
-  if (!inBounds(position.x) || !inBounds(position.y)) {
-    return;
-  }
-
-  // @ts-ignore
-  board[position.x][position.y] = value;
-}
-
-export function northOf(board: Board, position: Position): GetPieceType {
-  return getPieceAt(board, {
-    x: position.x + 1,
-    y: position.y,
-  });
-}
-
-export function southOf(board: Board, position: Position): GetPieceType {
-  return getPieceAt(board, {
-    x: position.x - 1,
-    y: position.y,
-  });
-}
-
-export function eastOf(board: Board, position: Position): GetPieceType {
-  return getPieceAt(board, {
-    x: position.x,
-    y: position.y + 1,
-  });
-}
-
-export function westOf(board: Board, position: Position): GetPieceType {
-  return getPieceAt(board, {
-    x: position.x,
-    y: position.y - 1,
-  });
-}
-
-function getNeighbours(
-  board: Board,
-  position: Position,
-): Array<SquareContents> {
-  const piecesInitial = [
-    northOf(board, position),
-    eastOf(board, position),
-    southOf(board, position),
-    westOf(board, position),
-  ];
-  let piecesFinal: Array<SquareContents> = [];
-
-  for (const piece of piecesInitial) {
-    if (!piece) {
-      continue;
+  getSquare(position: Position): SquareContents {
+    if (!position.isInBounds()) {
+      throw new Error(`Position out of bounds: ${position}`);
     }
 
-    piecesFinal.push(piece);
+    // @ts-ignore
+    return this.boardArray[position.x][position.y];
   }
 
-  return piecesFinal;
-}
+  setSquare(position: Position, value: SquareContents) {
+    if (!position.isInBounds()) {
+      throw new Error(`Position out of bounds: ${position}`);
+    }
 
-export function hasFriendlyNeighbour(
-  board: Board,
-  position: Position,
-): boolean {
-  let currentPiece = getPieceAt(board, position);
+    // @ts-ignore
+    this.boardArray[position.x][position.y] = value;
+  }
 
-  if (currentPiece === null) {
+  getNeighbours(position: Position): Array<Piece> {
+    const neighbours: Array<Piece> = [];
+
+    for (const otherPos of position.getNeighbourSquares()) {
+      const contents = this.getSquare(otherPos);
+
+      if (contents !== BLANK) {
+        neighbours.push(contents);
+      }
+    }
+
+    return neighbours;
+  }
+
+  hasPowerfulEnemyNeighbour(position: Position) {
+    const currentPiece = this.getSquare(position);
+
+    if (currentPiece === null) {
+      return false;
+    }
+
+    if (currentPiece === BLANK) {
+      return false;
+    }
+
+    for (const piece of this.getNeighbours(position)) {
+      if (piece.side !== currentPiece.side) {
+        if (doesOverpower(piece.type, currentPiece.type)) {
+          return true;
+        }
+      }
+    }
+
     return false;
   }
 
-  if (currentPiece === BLANK) {
+  hasFriendlyNeighbour(position: Position): boolean {
+    const currentPiece = this.getSquare(position);
+
+    if (currentPiece === null) {
+      return false;
+    }
+
+    if (currentPiece === BLANK) {
+      return false;
+    }
+
+    for (const piece of this.getNeighbours(position)) {
+      if (piece.side === currentPiece.side) {
+        return true;
+      }
+    }
+
     return false;
   }
 
-  for (const piece of getNeighbours(board, position)) {
-    if (piece === BLANK) {
-      continue;
-    }
-
-    if (piece.side === currentPiece.side) {
-      return true;
-    }
+  isFrozen(position: Position): boolean {
+    return (
+      this.hasPowerfulEnemyNeighbour(position) &&
+      !this.hasFriendlyNeighbour(position)
+    );
   }
-
-  return false;
 }
 
 const PiecePowerMap = {
@@ -161,35 +142,19 @@ export function doesOverpower(subj: PieceType, obj: PieceType): boolean {
   return getPiecePower(subj) > getPiecePower(obj);
 }
 
-export function hasPowerfulEnemyNeighbour(board: Board, position: Position) {
-  let currentPiece = getPieceAt(board, position);
+export function isOverHole(position: Position): boolean {
+  const holeSquares: Array<Position> = [
+    new Position(2, 2),
+    new Position(5, 2),
+    new Position(2, 5),
+    new Position(5, 5),
+  ];
 
-  if (currentPiece === null) {
-    return false;
-  }
-
-  if (currentPiece === BLANK) {
-    return false;
-  }
-
-  for (const piece of getNeighbours(board, position)) {
-    if (piece === BLANK) {
-      continue;
-    }
-
-    if (piece.side !== currentPiece.side) {
-      if (doesOverpower(piece.type, currentPiece.type)) {
-        return true;
-      }
+  for (const holeSquarePosition of holeSquares) {
+    if (position.positionMatches(holeSquarePosition)) {
+      return true;
     }
   }
 
   return false;
-}
-
-export function isFrozen(board: Board, position: Position) {
-  return (
-    hasPowerfulEnemyNeighbour(board, position) &&
-    !hasFriendlyNeighbour(board, position)
-  );
 }

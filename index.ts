@@ -1,12 +1,13 @@
 import {
   BLANK,
-  getPieceAt,
+  Board,
   PieceType,
   Side,
   type BlankType,
-  type Board,
+  type BoardArray,
   type SquareContents,
 } from "./core/board";
+import { Position } from "./core/position";
 import type { FixedSizeArray } from "./utils/array";
 
 function formatSquare(squareVal: SquareContents): string {
@@ -14,7 +15,7 @@ function formatSquare(squareVal: SquareContents): string {
     return "00";
   }
 
-  let pieceTypeString = {
+  const pieceTypeString = {
     [PieceType.Rabbit]: "R",
     [PieceType.Cat]: "C",
     [PieceType.Dog]: "D",
@@ -23,7 +24,7 @@ function formatSquare(squareVal: SquareContents): string {
     [PieceType.Elephant]: "E",
   }[squareVal.type];
 
-  let pieceSideString = {
+  const pieceSideString = {
     [Side.Gold]: "G",
     [Side.Silver]: "S",
   }[squareVal.side];
@@ -38,16 +39,15 @@ function formatBoard(board: Board): string {
     let rowString = "";
 
     for (let row = 0; row < 8; row++) {
-      let squareVal = getPieceAt(board, {
-        x: column,
-        y: row,
-      });
+      const position = new Position(column, row);
+      const squareVal = board.getSquare(position);
+
       // @ts-ignore
       rowString += formatSquare(squareVal);
       rowString += " ";
     }
 
-    resultString += rowString + "\n";
+    resultString += `${rowString}\n`;
     resultString += "                        \n";
   }
 
@@ -56,7 +56,7 @@ function formatBoard(board: Board): string {
 
 function defaultStartBoard(): Board {
   function minorRow(side: Side): FixedSizeArray<8, SquareContents> {
-    let result: Array<SquareContents> = [];
+    const result: Array<SquareContents> = [];
 
     for (let i = 0; i < 8; i++) {
       result.push({
@@ -70,7 +70,7 @@ function defaultStartBoard(): Board {
   }
 
   function majorRow(side: Side): FixedSizeArray<8, SquareContents> {
-    let result: FixedSizeArray<8, SquareContents> = [
+    const result: FixedSizeArray<8, SquareContents> = [
       {
         type: PieceType.Dog,
         side,
@@ -109,7 +109,7 @@ function defaultStartBoard(): Board {
   }
 
   function blankRow(): FixedSizeArray<8, SquareContents> {
-    let result: Array<BlankType> = [];
+    const result: Array<BlankType> = [];
 
     for (let i = 0; i < 8; i++) {
       result.push(BLANK);
@@ -119,7 +119,7 @@ function defaultStartBoard(): Board {
     return result;
   }
 
-  return [
+  const boardArray: BoardArray = [
     minorRow(Side.Gold),
     majorRow(Side.Gold),
     blankRow(),
@@ -129,8 +129,10 @@ function defaultStartBoard(): Board {
     majorRow(Side.Silver),
     minorRow(Side.Silver),
   ];
+
+  return new Board(boardArray);
 }
 
-let board = defaultStartBoard();
+const board = defaultStartBoard();
 
 console.log(formatBoard(board));
