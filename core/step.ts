@@ -1,67 +1,46 @@
 import { type Board, BLANK } from "./board";
-import type { Position, Direction } from "./position";
+import type { Position } from "./position";
 
 export class BasicStep {
   initialPos: Position;
-  direction: Direction;
+  targetPos: Position;
 
-  constructor(initialPos: Position, direction: Direction) {
+  constructor(initialPos: Position, targetPos: Position) {
     this.initialPos = initialPos;
-    this.direction = direction;
+    this.targetPos = targetPos;
   }
 
   perform(board: Board) {
-    const direction = this.direction;
-    const initialPos = this.initialPos;
+    const currentContents = board.getSquare(this.initialPos);
 
-    const targetPos = initialPos.directionOf(direction);
-    const currentContents = board.getSquare(initialPos);
-
-    board.setSquare(targetPos, currentContents);
-    board.setSquare(initialPos, BLANK);
+    board.setSquare(this.targetPos, currentContents);
+    board.setSquare(this.initialPos, BLANK);
   }
 }
 
-class PushPullStep {
-  activePosition: Position;
-  passivePosition: Position;
-  direction: Direction;
+export class PushPullStep {
+  leaderInitial: Position;
+  leaderTarget: Position;
+  followerInitial: Position;
 
   constructor(
-    activePosition: Position,
-    passivePosition: Position,
-    direction: Direction,
+    leaderInitial: Position,
+    leaderTarget: Position,
+    followerInitial: Position,
   ) {
-    this.activePosition = activePosition;
-    this.passivePosition = passivePosition;
-    this.direction = direction;
+    this.leaderInitial = leaderInitial;
+    this.leaderTarget = leaderTarget;
+    this.followerInitial = followerInitial;
   }
-}
 
-export class PushStep extends PushPullStep {
   peform(board: Board) {
-    const targetSquare = this.passivePosition.directionOf(this.direction);
+    const leaderContents = board.getSquare(this.leaderInitial);
+    const followerContents = board.getSquare(this.followerInitial);
 
-    const passiveContents = board.getSquare(this.passivePosition);
-    const activeContents = board.getSquare(this.activePosition);
-
-    board.setSquare(targetSquare, passiveContents);
-    board.setSquare(this.passivePosition, activeContents);
-    board.setSquare(this.activePosition, BLANK);
+    board.setSquare(this.leaderTarget, leaderContents);
+    board.setSquare(this.leaderInitial, followerContents);
+    board.setSquare(this.followerInitial, BLANK);
   }
 }
 
-export class PullStep extends PushPullStep {
-  perform(board: Board) {
-    const targetSquare = this.activePosition.directionOf(this.direction);
-
-    const passiveContents = board.getSquare(this.passivePosition);
-    const activeContents = board.getSquare(this.activePosition);
-
-    board.setSquare(targetSquare, activeContents);
-    board.setSquare(this.activePosition, passiveContents);
-    board.setSquare(this.passivePosition, BLANK);
-  }
-}
-
-export type Step = BasicStep | PushStep | PullStep;
+export type Step = BasicStep | PushPullStep;
