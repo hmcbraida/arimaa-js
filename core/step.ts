@@ -33,7 +33,7 @@ export class PushPullStep {
     this.followerInitial = followerInitial;
   }
 
-  peform(board: Board) {
+  perform(board: Board) {
     const leaderContents = board.getSquare(this.leaderInitial);
     const followerContents = board.getSquare(this.followerInitial);
 
