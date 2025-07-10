@@ -61,7 +61,7 @@ export class Position {
 
   isInBounds() {
     function coordInBounds(val: number) {
-      return val >= 0 || val < 8;
+      return val >= 0 && val < 8;
     }
     return coordInBounds(this.x) && coordInBounds(this.y);
   }
