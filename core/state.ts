@@ -38,7 +38,7 @@ export class GameState {
   }
 
   getAvailableBasicStepsForPos(position: Position): Array<BasicStep> {
-    let results: Array<BasicStep> = [];
+    const results: Array<BasicStep> = [];
 
     for (const neighbourSquare of position.getNeighbourSquares()) {
       const contents = this.board.getSquare(neighbourSquare);
@@ -54,7 +54,7 @@ export class GameState {
   }
 
   getAvailablePushStepsForPos(position: Position): Array<PushPullStep> {
-    let results: Array<PushPullStep> = [];
+    const results: Array<PushPullStep> = [];
     const myContents = this.board.getSquare(position);
 
     if (myContents === BLANK) {
@@ -101,7 +101,7 @@ export class GameState {
   }
 
   getAvailablePullStepsForPos(position: Position): Array<PushPullStep> {
-    let results: Array<PushPullStep> = [];
+    const results: Array<PushPullStep> = [];
     const myContents = this.board.getSquare(position);
 
     if (myContents === BLANK) {

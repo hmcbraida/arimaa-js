@@ -3,7 +3,6 @@ import { createInterface } from "node:readline/promises";
 import {
   BLANK,
   Board,
-  type Piece,
   PieceType,
   Side,
   type BlankType,
@@ -141,7 +140,7 @@ const board = defaultStartBoard();
 
 console.log(formatBoard(board));
 
-let gameState = new GameState(board, Side.Gold);
+const gameState = new GameState(board, Side.Gold);
 
 const rl = createInterface({
   input: process.stdin,
