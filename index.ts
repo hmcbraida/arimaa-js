@@ -1,6 +1,9 @@
+import { createInterface } from "node:readline/promises";
+
 import {
   BLANK,
   Board,
+  type Piece,
   PieceType,
   Side,
   type BlankType,
@@ -8,6 +11,7 @@ import {
   type SquareContents,
 } from "./core/board";
 import { Position } from "./core/position";
+import { GameState } from "./core/state";
 import type { FixedSizeArray } from "./utils/array";
 
 function formatSquare(squareVal: SquareContents): string {
@@ -136,3 +140,23 @@ function defaultStartBoard(): Board {
 const board = defaultStartBoard();
 
 console.log(formatBoard(board));
+
+let gameState = new GameState(board, Side.Gold);
+
+const rl = createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+
+// Toy program to make random steps.
+// Does not change sides or end turn or account for holes yet.
+
+while (true) {
+  const steps = gameState.getAvailableSteps();
+
+  const step = steps[Math.floor(Math.random() * steps.length)];
+  step?.perform(board);
+  console.log(formatBoard(board));
+
+  await rl.question(">");
+}
