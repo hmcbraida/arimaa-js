@@ -14,6 +14,7 @@ import { defineConfig } from "vite";
  */
 export default defineConfig({
   plugins: [react()],
+  base: "/arimaatic/",
   server: process.env.API_URL
     ? {
         proxy: {
