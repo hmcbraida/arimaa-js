@@ -16,6 +16,8 @@ interface BoardProps {
   readonly game: ArimaaGame;
   readonly onStep: (step: MovementStep) => void;
   readonly onUndoVisibleStep: () => void;
+  /** When true, renders the board from silver's perspective (rank 1 at top, file h on left). */
+  readonly flipped?: boolean;
 }
 
 interface PossibleDrag {
@@ -33,7 +35,12 @@ function getPendingPull(step: MovementStep): PendingPull {
  * The component asks the shared engine for legal visible movement steps, then
  * translates square clicks into exact step objects for execution.
  */
-export function Board({ game, onStep, onUndoVisibleStep }: BoardProps) {
+export function Board({
+  game,
+  onStep,
+  onUndoVisibleStep,
+  flipped = false,
+}: BoardProps) {
   const [selected, setSelected] = useState<Square | null>(null);
   const [possibleDrags, setPossibleDrags] = useState<readonly PossibleDrag[]>(
     [],
@@ -126,11 +133,13 @@ export function Board({ game, onStep, onUndoVisibleStep }: BoardProps) {
     setSelected(canStartStep ? square : null);
   }
 
-  const ranks = Array.from(
-    { length: BOARD_SIZE },
-    (_, index) => BOARD_SIZE - index - 1,
+  // When flipped (silver's perspective), rank 1 is at the top and file h is on the left.
+  const ranks = Array.from({ length: BOARD_SIZE }, (_, index) =>
+    flipped ? index : BOARD_SIZE - index - 1,
   );
-  const files = Array.from({ length: BOARD_SIZE }, (_, index) => index);
+  const files = Array.from({ length: BOARD_SIZE }, (_, index) =>
+    flipped ? BOARD_SIZE - index - 1 : index,
+  );
 
   return (
     <section aria-label="Arimaa board" className="w-full max-w-[680px]">

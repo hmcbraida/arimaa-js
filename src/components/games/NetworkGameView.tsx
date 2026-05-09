@@ -69,6 +69,9 @@ export function NetworkGameView({
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  // Spectators can toggle the board orientation; players are locked to their side.
+  const [spectatorFlipped, setSpectatorFlipped] = useState(false);
+
   // We keep a ref to the latest snapshot so the websocket effect can
   // read it without re-subscribing on every snapshot change.
   const snapshotRef = useRef(snapshot);
@@ -126,6 +129,13 @@ export function NetworkGameView({
    * Is the current viewer just spectating?
    */
   const spectator = stored === null || stored.role !== "player";
+
+  /**
+   * Board orientation. Silver players always see a flipped board (rank 1 at
+   * top). Spectators start with the gold perspective but can toggle. Gold
+   * players always see the normal orientation.
+   */
+  const flipped = spectator ? spectatorFlipped : stored?.side === "silver";
 
   /**
    * Forward a step to the engine. We allow this only if the viewer
@@ -267,9 +277,27 @@ export function NetworkGameView({
           {snapshot.reason}).
         </div>
       )}
+      {/* Role / perspective indicator */}
+      {!spectator && stored?.side === "gold" && (
+        <div className="border border-amber-400 bg-amber-50 p-4 text-sm font-medium text-amber-900">
+          You are playing Gold.
+        </div>
+      )}
+      {!spectator && stored?.side === "silver" && (
+        <div className="border border-stone-400 bg-stone-100 p-4 text-sm font-medium text-stone-800">
+          You are playing Silver.
+        </div>
+      )}
       {spectator && (
-        <div className="border border-stone-300 bg-stone-50 p-4 text-sm text-stone-700">
-          You are spectating this game. Moves are read-only.
+        <div className="flex items-center justify-between gap-4 border border-stone-300 bg-stone-50 p-4 text-sm text-stone-700">
+          <span>You are spectating this game. Moves are read-only.</span>
+          <button
+            className="whitespace-nowrap rounded border border-stone-400 bg-white px-3 py-1 text-xs font-medium text-stone-700 hover:bg-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500"
+            onClick={() => setSpectatorFlipped((f) => !f)}
+            type="button"
+          >
+            {spectatorFlipped ? "View as Gold" : "View as Silver"}
+          </button>
         </div>
       )}
       {submitError !== null && (
@@ -284,6 +312,7 @@ export function NetworkGameView({
           // state when the engine is replaced from a server update.
           key={engineKey}
           game={game}
+          flipped={flipped}
           // Spectators and the off-turn player still see legal-move
           // dots highlighted, but their clicks are dropped because
           // the engine refuses any moves the side-to-move can't make.
