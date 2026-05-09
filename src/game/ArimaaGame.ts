@@ -18,7 +18,7 @@ import {
   squareEquals,
   squareKey,
 } from "./coordinates";
-import { captureNotation, movementNotation } from "./notation";
+import { captureNotation, movementNotation, pieceToLetter } from "./notation";
 import {
   type PiecePlacement,
   boardFromPlacements,
@@ -95,6 +95,7 @@ const FINISH_TURN_STEP: FinishTurnStep = {
  * mutating boards directly.
  */
 export class ArimaaGame {
+  private initialBoard: Board;
   private board: Board;
   private sideToMove: Side;
   private moveNumber: number;
@@ -119,6 +120,7 @@ export class ArimaaGame {
     board: Board = createDefaultBoard(),
     sideToMove: Side = Side.Gold,
   ) {
+    this.initialBoard = cloneBoard(board);
     this.board = cloneBoard(board);
     this.sideToMove = sideToMove;
     this.moveNumber = 1;
@@ -156,6 +158,47 @@ export class ArimaaGame {
     sideToMove: Side = Side.Gold,
   ): ArimaaGame {
     return new ArimaaGame(boardFromPlacements(placements), sideToMove);
+  }
+
+  /**
+   * Imports a setup-and-moves transcript in the same format as `sample_game.txt`.
+   *
+   * The format starts with `1g` and `1s` setup lines, followed by committed
+   * move lines. A trailing blank move line is allowed to mark the current side
+   * to move after the final committed move.
+   */
+  public static fromTranscript(transcript: string): ArimaaGame {
+    const lines = transcript
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+
+    if (lines.length < 2) {
+      throw new Error("Transcript must include gold and silver setup lines");
+    }
+
+    const goldSetup = parseTranscriptLine(lines[0]);
+    const silverSetup = parseTranscriptLine(lines[1]);
+
+    if (goldSetup.label !== "1g" || silverSetup.label !== "1s") {
+      throw new Error("Transcript must begin with 1g and 1s setup lines");
+    }
+
+    const placements = [
+      ...parseSetupPlacements(goldSetup.tokens, Side.Gold),
+      ...parseSetupPlacements(silverSetup.tokens, Side.Silver),
+    ];
+    const game = new ArimaaGame(boardFromPlacements(placements), Side.Gold);
+    const moveLines = lines.slice(2).map(parseTranscriptLine);
+    const imported = game.replayTranscriptLines(moveLines, 0);
+
+    if (imported === undefined) {
+      throw new Error(
+        "Transcript could not be replayed from the supplied setup",
+      );
+    }
+
+    return imported;
   }
 
   /**
@@ -342,6 +385,43 @@ export class ArimaaGame {
     return this.history
       .filter((record) => options.includeHidden === true || !record.hidden)
       .map(cloneAppliedStepRecord);
+  }
+
+  /**
+   * Exports the current game as a setup-and-moves transcript.
+   *
+   * The current implementation only serializes committed turns because the
+   * transcript format does not encode unfinished turn state.
+   */
+  public toTranscript(): string {
+    if (this.currentMoveSteps.length > 0 || this.pendingAction !== null) {
+      throw new Error("Cannot export a game with an unfinished turn");
+    }
+
+    const lines = [
+      `1g ${serializeSetupLine(this.initialBoard, Side.Gold)}`,
+      `1s ${serializeSetupLine(this.initialBoard, Side.Silver)}`,
+      ...this.moveLog.map(
+        (move) =>
+          `${transcriptTurnLabel(move.moveNumber, move.side)} ${move.notation}`,
+      ),
+      transcriptTurnLabel(this.moveNumber, this.sideToMove),
+    ];
+
+    return lines.join("\n");
+  }
+
+  /**
+   * Resolves transcript tokens to one legal sequence of movement steps.
+   *
+   * The transcript format stores movement and capture tokens inline, so this
+   * matcher validates capture ordering after every speculative step.
+   */
+  private findTranscriptMoveSteps(tokens: readonly string[]): MovementStep[][] {
+    const matches: MovementStep[][] = [];
+
+    this.collectTranscriptMoveSteps(tokens, 0, [], matches);
+    return matches;
   }
 
   /**
@@ -1156,9 +1236,103 @@ export class ArimaaGame {
    */
   private forkForSearch(): ArimaaGame {
     const game = new ArimaaGame(this.board, this.sideToMove);
+    game.initialBoard = cloneBoard(this.initialBoard);
     game.restoreState(this.captureState());
     game.undoStack = [];
     return game;
+  }
+
+  /**
+   * Recursively matches transcript tokens against legal visible movement steps.
+   *
+   * Each executed step may contribute one movement token plus zero or more trap
+   * capture tokens, so the recursion advances by the exact emitted slice.
+   */
+  private collectTranscriptMoveSteps(
+    tokens: readonly string[],
+    tokenIndex: number,
+    prefix: readonly MovementStep[],
+    matches: MovementStep[][],
+  ): void {
+    if (tokenIndex === tokens.length) {
+      if (this.canFinishTurn()) {
+        matches.push([...prefix]);
+      }
+
+      return;
+    }
+
+    const expectedMovement = tokens[tokenIndex];
+
+    for (const step of this.listVisibleLegalSteps()) {
+      if (step.notation !== expectedMovement) {
+        continue;
+      }
+
+      const candidate = this.forkForSearch();
+      const applied = candidate.executeStep(step);
+      const consumedTokens = applied.notationEntries.length;
+      const consumedSlice = tokens.slice(
+        tokenIndex,
+        tokenIndex + consumedTokens,
+      );
+
+      if (!notationEntriesEqual(applied.notationEntries, consumedSlice)) {
+        continue;
+      }
+
+      candidate.collectTranscriptMoveSteps(
+        tokens,
+        tokenIndex + consumedTokens,
+        [...prefix, step],
+        matches,
+      );
+    }
+  }
+
+  /**
+   * Replays transcript lines with backtracking across ambiguous move text.
+   *
+   * Some legal sequences share the same notation, especially around push and
+   * pull choices, so the importer keeps only branches that allow the remaining
+   * transcript to stay legal.
+   */
+  private replayTranscriptLines(
+    lines: readonly TranscriptLine[],
+    lineIndex: number,
+  ): ArimaaGame | undefined {
+    if (lineIndex >= lines.length) {
+      return this;
+    }
+
+    const line = lines[lineIndex];
+    const expectedLabel = transcriptTurnLabel(this.moveNumber, this.sideToMove);
+
+    if (line.label !== expectedLabel) {
+      return undefined;
+    }
+
+    if (line.tokens.length === 0) {
+      return lineIndex === lines.length - 1 ? this : undefined;
+    }
+
+    for (const steps of this.findTranscriptMoveSteps(line.tokens)) {
+      const candidate = this.forkForSearch();
+
+      for (const step of steps) {
+        candidate.executeStep(step);
+      }
+
+      candidate.finishTurn();
+
+      const imported = candidate.replayTranscriptLines(lines, lineIndex + 1);
+
+      if (imported !== undefined) {
+        return imported;
+      }
+    }
+
+    return undefined;
   }
 }
 
@@ -1250,6 +1424,107 @@ function cloneCompletedMove(move: CompletedMove): CompletedMove {
  */
 function notationFromRecords(records: readonly AppliedStepRecord[]): string {
   return records.flatMap((record) => record.notationEntries).join(" ");
+}
+
+/** Compares notation entry sequences without exposing mutable array identity. */
+function notationEntriesEqual(
+  left: readonly string[],
+  right: readonly string[],
+): boolean {
+  return (
+    left.length === right.length &&
+    left.every((entry, index) => entry === right[index])
+  );
+}
+
+/** Parsed transcript line with its turn label and trailing tokens. */
+interface TranscriptLine {
+  readonly label: string;
+  readonly tokens: readonly string[];
+}
+
+/** Parses one transcript line into the move label and notation/setup tokens. */
+function parseTranscriptLine(line: string): TranscriptLine {
+  const [label, ...tokens] = line
+    .split(/\s+/)
+    .filter((part) => part.length > 0);
+
+  if (label === undefined || !/^\d+[gs]$/.test(label)) {
+    throw new Error(`Invalid transcript line: ${line}`);
+  }
+
+  return { label, tokens };
+}
+
+/** Converts setup tokens like `Ra1` into public placement values. */
+function parseSetupPlacements(
+  tokens: readonly string[],
+  side: Side,
+): PiecePlacement[] {
+  return tokens.map((token) => {
+    if (!/^[RCDHMErcdhme][a-h][1-8]$/.test(token)) {
+      throw new Error(`Invalid setup token: ${token}`);
+    }
+
+    const pieceLetter = token[0];
+    const square = token.slice(1, 3) as AlgebraicSquare;
+    const pieceSide =
+      pieceLetter === pieceLetter.toUpperCase() ? Side.Gold : Side.Silver;
+
+    if (pieceSide !== side) {
+      throw new Error(`Setup token ${token} does not match ${side} setup line`);
+    }
+
+    return {
+      square,
+      piece: {
+        side,
+        type: pieceTypeFromLetter(pieceLetter),
+      },
+    };
+  });
+}
+
+/** Maps notation letters back to domain piece kinds. */
+function pieceTypeFromLetter(letter: string): PieceType {
+  switch (letter.toUpperCase()) {
+    case "R":
+      return PieceType.Rabbit;
+    case "C":
+      return PieceType.Cat;
+    case "D":
+      return PieceType.Dog;
+    case "H":
+      return PieceType.Horse;
+    case "M":
+      return PieceType.Camel;
+    case "E":
+      return PieceType.Elephant;
+    default:
+      throw new Error(`Unknown piece letter: ${letter}`);
+  }
+}
+
+/** Formats the transcript turn label used by setup and move lines. */
+function transcriptTurnLabel(moveNumber: number, side: Side): string {
+  return `${moveNumber + 1}${side === Side.Gold ? "g" : "s"}`;
+}
+
+/** Serializes one side of the starting board into setup tokens. */
+function serializeSetupLine(board: Board, side: Side): string {
+  const entries: string[] = [];
+
+  for (let rank = 0; rank < board.length; rank += 1) {
+    for (let file = 0; file < board[rank].length; file += 1) {
+      const piece = board[rank][file];
+
+      if (piece?.side === side) {
+        entries.push(`${pieceToLetter(piece)}${formatSquare({ file, rank })}`);
+      }
+    }
+  }
+
+  return entries.join(" ");
 }
 
 /**

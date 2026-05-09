@@ -1,4 +1,5 @@
 import { ArimaaGame, PieceType, Side, piece } from ".";
+import { sampleGameTranscript } from "./testResources/sampleGameTranscript";
 
 /**
  * Constructs compact test games without repeating setup boilerplate.
@@ -106,5 +107,31 @@ describe("ArimaaGame", () => {
     expect(snapshot.sideToMove).toBe(Side.Gold);
     expect(snapshot.board[1][0]).toEqual(piece(Side.Gold, PieceType.Rabbit));
     expect(game.getHistory()).toHaveLength(0);
+  });
+
+  it("imports the sample transcript into the expected terminal state", () => {
+    const game = ArimaaGame.fromTranscript(sampleGameTranscript);
+    const snapshot = game.getSnapshot();
+
+    expect(snapshot.status).toEqual({
+      kind: "finished",
+      winner: Side.Gold,
+      reason: "goal",
+    });
+    expect(snapshot.sideToMove).toBe(Side.Silver);
+    expect(snapshot.moveNumber).toBe(33);
+    expect(game.getMoveLog()).toHaveLength(65);
+    expect(game.toTranscript()).toBe(sampleGameTranscript);
+  });
+
+  it("exports a replayed sample transcript without changing its format", () => {
+    const original = ArimaaGame.fromTranscript(sampleGameTranscript);
+    const exported = original.toTranscript();
+    const replayed = ArimaaGame.fromTranscript(exported);
+
+    expect(exported).toBe(sampleGameTranscript);
+    expect(replayed.toTranscript()).toBe(sampleGameTranscript);
+    expect(replayed.getSnapshot()).toEqual(original.getSnapshot());
+    expect(replayed.getMoveLog()).toEqual(original.getMoveLog());
   });
 });

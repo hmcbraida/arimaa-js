@@ -1,5 +1,10 @@
 import { expect, test } from "@playwright/test";
 
+const importableTranscript = `1g Ra2
+1s rh7
+2g Ra2n
+2s`;
+
 /**
  * UI smoke tests for the Vite application.
  *
@@ -86,5 +91,28 @@ test.describe("Arimaa app", () => {
     await expect(
       page.getByTestId("square-c3").getByTestId("piece-H"),
     ).toHaveCount(0);
+  });
+
+  test("imports and exports a transcript through the controller", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    await page.getByRole("button", { name: "Import Game" }).click();
+    await page.getByLabel("Transcript to import").fill(importableTranscript);
+    await page.getByRole("button", { name: "Load Transcript" }).click();
+
+    await expect(page.getByText("Transcript imported.")).toBeVisible();
+    await expect(
+      page.getByTestId("square-a3").getByTestId("piece-R"),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId("square-b2").getByTestId("piece-M"),
+    ).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Export Game" }).click();
+    await expect(page.getByLabel("Exported transcript")).toHaveValue(
+      importableTranscript,
+    );
   });
 });

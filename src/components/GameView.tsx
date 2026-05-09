@@ -11,12 +11,22 @@ interface GameViewProps {
 /**
  * Composes the two main application surfaces around one game engine.
  *
- * The game object is intentionally stable and mutable. A small revision state
- * forces React to reread cloned snapshots after each engine mutation.
+ * The engine is mutable, but import must be able to replace it wholesale.
+ * React therefore tracks both the current engine instance and a lightweight
+ * revision counter that forces snapshot-based children to reread state after
+ * in-place mutations.
  */
 export function GameView({ initialGame }: GameViewProps = {}) {
-  const [game] = useState(() => initialGame ?? ArimaaGame.withDefaultSetup());
+  const [game, setGame] = useState(
+    () => initialGame ?? ArimaaGame.withDefaultSetup(),
+  );
+  const [gameInstanceKey, setGameInstanceKey] = useState(0);
   const [, setRevision] = useState(0);
+
+  /** Bumps the render revision after any in-place engine mutation. */
+  const refreshFromMutableGame = useCallback(() => {
+    setRevision((revision) => revision + 1);
+  }, []);
 
   /**
    * Executes a visible movement without committing the turn.
@@ -27,9 +37,9 @@ export function GameView({ initialGame }: GameViewProps = {}) {
   const handleStep = useCallback(
     (step: MovementStep) => {
       game.executeStep(step);
-      setRevision((revision) => revision + 1);
+      refreshFromMutableGame();
     },
-    [game],
+    [game, refreshFromMutableGame],
   );
 
   /**
@@ -41,9 +51,9 @@ export function GameView({ initialGame }: GameViewProps = {}) {
   const handleSubmitTurn = useCallback(() => {
     if (game.canFinishTurn()) {
       game.finishTurn();
-      setRevision((revision) => revision + 1);
+      refreshFromMutableGame();
     }
-  }, [game]);
+  }, [game, refreshFromMutableGame]);
 
   /**
    * Undoes one visible movement through the engine's filtered undo method.
@@ -52,9 +62,30 @@ export function GameView({ initialGame }: GameViewProps = {}) {
    */
   const handleUndoVisibleStep = useCallback(() => {
     if (game.undoVisibleStep()) {
-      setRevision((revision) => revision + 1);
+      refreshFromMutableGame();
     }
-  }, [game]);
+  }, [game, refreshFromMutableGame]);
+
+  /**
+   * Serializes the current game into the engine's transcript format.
+   *
+   * Export is intentionally routed through this component rather than the
+   * controller so the transcript boundary stays aligned with engine ownership.
+   */
+  const handleExportTranscript = useCallback(() => game.toTranscript(), [game]);
+
+  /**
+   * Replaces the live engine with a transcript-imported game.
+   *
+   * Import must swap engine identity because replay creates a new rule state,
+   * undo stack, and move log. Reusing the old instance would leak state across
+   * two unrelated games.
+   */
+  const handleImportTranscript = useCallback((transcript: string) => {
+    setGame(ArimaaGame.fromTranscript(transcript));
+    setGameInstanceKey((key) => key + 1);
+    setRevision((revision) => revision + 1);
+  }, []);
 
   return (
     <main className="min-h-screen bg-stone-50 px-6 py-8 text-stone-950">
@@ -64,12 +95,15 @@ export function GameView({ initialGame }: GameViewProps = {}) {
         </header>
         <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
           <Board
+            key={gameInstanceKey}
             game={game}
             onStep={handleStep}
             onUndoVisibleStep={handleUndoVisibleStep}
           />
           <ControllerPanel
             game={game}
+            onExportTranscript={handleExportTranscript}
+            onImportTranscript={handleImportTranscript}
             onSubmitTurn={handleSubmitTurn}
             onUndoVisibleStep={handleUndoVisibleStep}
           />
