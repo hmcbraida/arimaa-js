@@ -63,11 +63,11 @@ export function PieceToken({ piece }: PieceTokenProps) {
   return (
     <span
       aria-label={`${piece.side} ${PIECE_LABELS[piece.type]}`}
-      className="flex h-9 w-9 items-center justify-center border-2"
+      className="flex aspect-square w-[75%] items-center justify-center border-2"
       style={sideStyle}
       data-testid={`piece-${pieceToLetter(piece)}`}
     >
-      <Icon className="h-7 w-7" />
+      <Icon className="h-[80%] w-[80%]" />
     </span>
   );
 }
