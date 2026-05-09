@@ -60,7 +60,7 @@ export function Button({
         boxShadow: disabled ? "none" : variantShadow[variant],
         ...style,
       }}
-      className={`flex items-center justify-center gap-2 px-3 py-2 text-sm disabled:cursor-not-allowed ${variantClass[variant]} ${className}`}
+      className={`flex min-h-[44px] items-center justify-center gap-2 px-3 py-2 text-sm disabled:cursor-not-allowed ${variantClass[variant]} ${className}`}
       {...rest}
     >
       {children}
