@@ -61,7 +61,10 @@ describe("shouldAdoptSnapshot", () => {
   });
 
   it("returns true when the game completes (status → completed, transcript changes)", () => {
-    const current = makeSnapshot({ status: "gold", transcript: "1g Ca2n\n2s\n" });
+    const current = makeSnapshot({
+      status: "gold",
+      transcript: "1g Ca2n\n2s\n",
+    });
     const incoming = makeSnapshot({
       status: "completed",
       sideToMove: null,
@@ -73,7 +76,10 @@ describe("shouldAdoptSnapshot", () => {
   });
 
   it("returns false when an identical snapshot is received a second time", () => {
-    const snap = makeSnapshot({ status: "silver", transcript: "1g Ca2n\n2s\n" });
+    const snap = makeSnapshot({
+      status: "silver",
+      transcript: "1g Ca2n\n2s\n",
+    });
     expect(shouldAdoptSnapshot(snap, snap)).toBe(false);
   });
 });

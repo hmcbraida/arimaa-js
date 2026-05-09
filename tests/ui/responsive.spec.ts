@@ -59,11 +59,14 @@ async function assertWithinViewportWidth(
   const viewport = page.viewportSize();
   expect(box, `${label}: bounding box must be obtainable`).not.toBeNull();
   expect(viewport, `${label}: viewport size must be known`).not.toBeNull();
-  expect(box!.x, `${label}: left edge must be within viewport`).toBeGreaterThanOrEqual(0);
   expect(
-    box!.x + box!.width,
+    box?.x,
+    `${label}: left edge must be within viewport`,
+  ).toBeGreaterThanOrEqual(0);
+  expect(
+    box?.x + box?.width,
     `${label}: right edge must not exceed viewport width`,
-  ).toBeLessThanOrEqual(viewport!.width);
+  ).toBeLessThanOrEqual(viewport?.width);
 }
 
 /**
@@ -73,11 +76,19 @@ async function assertWithinViewportWidth(
  * 44 × 44 CSS pixels. This is the threshold below which tap accuracy
  * degrades noticeably on a capacitive touch screen.
  */
-async function assertTouchTarget(locator: Locator, label: string): Promise<void> {
+async function assertTouchTarget(
+  locator: Locator,
+  label: string,
+): Promise<void> {
   const box = await locator.boundingBox();
   expect(box, `${label}: element must be present`).not.toBeNull();
-  expect(box!.width, `${label}: width must be ≥ 44 px`).toBeGreaterThanOrEqual(44);
-  expect(box!.height, `${label}: height must be ≥ 44 px`).toBeGreaterThanOrEqual(44);
+  expect(box?.width, `${label}: width must be ≥ 44 px`).toBeGreaterThanOrEqual(
+    44,
+  );
+  expect(
+    box?.height,
+    `${label}: height must be ≥ 44 px`,
+  ).toBeGreaterThanOrEqual(44);
 }
 
 // ---------------------------------------------------------------------------
@@ -109,17 +120,17 @@ test.describe("Responsive layout — offline game page", () => {
     // In the default (gold's perspective, unflipped) layout, file 'a' is the
     // leftmost data column and file 'h' is the rightmost.
     const filesLeftToRight = ["a", "b", "c", "d", "e", "f", "g", "h"] as const;
-    let prevRight = -Infinity;
+    let prevRight = Number.NEGATIVE_INFINITY;
     let prevLabel = "left edge";
     for (const file of filesLeftToRight) {
       const sq = `${file}1`;
       const box = await page.getByTestId(`square-${sq}`).boundingBox();
       expect(box, `${sq}: element must be present`).not.toBeNull();
       expect(
-        box!.x,
+        box?.x,
         `${sq} must not overlap ${prevLabel} (right edge at ${prevRight.toFixed(1)}px)`,
       ).toBeGreaterThanOrEqual(prevRight - 1); // 1 px tolerance for sub-pixel rounding
-      prevRight = box!.x + box!.width;
+      prevRight = box?.x + box?.width;
       prevLabel = sq;
     }
   });
@@ -154,10 +165,7 @@ test.describe("Responsive layout — offline game page", () => {
     // issues without measuring all 64 squares.
     const sampleSquares = ["a1", "a8", "h1", "h8", "d4", "e5"] as const;
     for (const sq of sampleSquares) {
-      await assertTouchTarget(
-        page.getByTestId(`square-${sq}`),
-        `square-${sq}`,
-      );
+      await assertTouchTarget(page.getByTestId(`square-${sq}`), `square-${sq}`);
     }
   });
 });

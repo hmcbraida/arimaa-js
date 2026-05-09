@@ -157,7 +157,10 @@ export function Board({
   );
 
   return (
-    <section aria-label="Arimaa board" className="w-full max-w-[680px] overflow-x-auto">
+    <section
+      aria-label="Arimaa board"
+      className="w-full max-w-[680px] overflow-x-auto"
+    >
       {/* minmax(44px,1fr) keeps each column at the 44 px touch-target minimum.
           On viewports narrower than 384 px (32 px label + 8×44 px) the grid
           exceeds the section width; overflow-x-auto on the section lets users
