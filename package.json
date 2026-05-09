@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
+    "dev:docker": "API_URL=http://localhost:8080 vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
     "server": "bun run src/server/index.ts",
     "db:generate": "drizzle-kit generate",
