@@ -48,6 +48,34 @@ function gameFromSnapshot(snapshot: SessionSnapshot): ArimaaGame {
   return ArimaaGame.fromTranscript(snapshot.transcript);
 }
 
+/**
+ * Decide whether an incoming WebSocket snapshot should replace the
+ * currently held local snapshot.
+ *
+ * We skip adoption when BOTH the transcript and status are identical:
+ *
+ * - Comparing transcripts prevents pointless engine rebuilds (and the
+ *   accompanying loss of the player's in-progress move preview) when a
+ *   duplicate event arrives with unchanged game state.
+ * - Comparing status is necessary because the `accepted` event
+ *   transitions status from `"waiting"` to a side-to-move value while
+ *   the transcript is still the initial setup — no moves have been
+ *   played yet. Without this second check the "waiting for opponent"
+ *   banner would persist even after the opponent joins.
+ *
+ * Exported so the unit-test file can import and exercise this predicate
+ * without having to mount the full React component tree.
+ */
+export function shouldAdoptSnapshot(
+  incoming: SessionSnapshot,
+  current: SessionSnapshot,
+): boolean {
+  return (
+    incoming.transcript !== current.transcript ||
+    incoming.status !== current.status
+  );
+}
+
 export function NetworkGameView({
   initialSnapshot,
   stored,
@@ -97,8 +125,9 @@ export function NetworkGameView({
     const unsubscribe = socket.subscribe(initialSnapshot.id, (event) => {
       // All event payloads include the latest snapshot, so we can
       // adopt it uniformly regardless of event type. We only do so
-      // if the new transcript is actually different — otherwise we
-      // pointlessly discard the user's in-progress preview.
+      // when something meaningful has changed — see `shouldAdoptSnapshot`
+      // for the exact predicate and why status must be checked alongside
+      // the transcript.
       const incomingSnapshot =
         event.type === "completed" ||
         event.type === "move" ||
@@ -106,7 +135,7 @@ export function NetworkGameView({
           ? event.snapshot
           : null;
       if (incomingSnapshot === null) return;
-      if (incomingSnapshot.transcript === snapshotRef.current.transcript) {
+      if (!shouldAdoptSnapshot(incomingSnapshot, snapshotRef.current)) {
         return;
       }
       adoptSnapshot(incomingSnapshot);
