@@ -33,6 +33,7 @@
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@eslint/js": "^9.17.0",
+    "@j178/prek": "^0.3.13",
     "@playwright/test": "^1.49.1",
     "@types/node": "^22.10.2",
     "@types/pg": "^8.20.0",

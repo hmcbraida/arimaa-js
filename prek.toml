@@ -1,0 +1,31 @@
+# Configuration file for `prek`, a git hook manager written in Rust.
+# See https://prek.j178.dev for more information.
+#:schema https://www.schemastore.org/prek.json
+
+[[repos]]
+repo = "local"
+
+[[repos.hooks]]
+id = "lint"
+name = "Lint (eslint + biome)"
+language = "system"
+entry = "bun run lint"
+pass_filenames = false
+always_run = true
+
+[[repos.hooks]]
+id = "test"
+name = "Unit tests (bun)"
+language = "system"
+entry = "bun run test"
+pass_filenames = false
+always_run = true
+
+[[repos.hooks]]
+id = "test-ui"
+name = "UI tests (playwright)"
+stages = ["pre-push"]
+language = "system"
+entry = "bun run test:ui"
+pass_filenames = false
+always_run = true
