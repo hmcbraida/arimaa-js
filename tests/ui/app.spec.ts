@@ -9,7 +9,7 @@ const importableTranscript = `1g Ra2
  * UI smoke tests for the Vite application.
  *
  * These tests verify that the board and controller are wired to the same game
- * instance rather than testing every rule already covered by Jest.
+ * instance.
  */
 test.describe("Arimaa app", () => {
   test("moves a piece and reflects the step in the controller", async ({

@@ -11,7 +11,7 @@ import tseslint from "typescript-eslint";
  * TypeScript correctness and React hook constraints.
  */
 export default tseslint.config(
-  { ignores: ["dist", "coverage", "node_modules"] },
+  { ignores: [".vite", "dist", "coverage", "node_modules"] },
   js.configs.recommended,
   {
     files: ["**/*.{js,cjs}"],

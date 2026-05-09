@@ -17,7 +17,6 @@ This brings up four services and runs database migrations automatically. Visit *
 ### Prerequisites
 
 - [Bun](https://bun.sh/) ≥ 1.1
-- Node.js 20+ (for type-checking only)
 - PostgreSQL 16 and NATS 2 (or use Docker for those while running the app locally)
 
 ### Install dependencies
@@ -59,7 +58,7 @@ The server runs migrations against the configured database on startup, then list
 | `bun run dev` | Start Vite dev server (SPA) |
 | `bun run server` | Start Fastify API server |
 | `bun run build` | Type-check + Vite production build |
-| `bun run test` | Run Jest unit / integration tests |
+| `bun run test` | Run unit / integration tests |
 | `bun run test:ui` | Run Playwright end-to-end tests |
 | `bun run lint` | ESLint + Biome check |
 | `bun run format` | Biome auto-fix formatting |

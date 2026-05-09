@@ -315,11 +315,11 @@ describe("session API", () => {
 
   describe("WS /api/ws", () => {
     it("forwards move events to subscribed clients", async () => {
-      // injectWS requires the server to be listening on an ephemeral port,
-      // so we ready() and listen on 0 (any port). We close the app at the
-      // end to release it.
+      // app.listen() on port 0 lets the OS pick an ephemeral port.
+      // The return value is the bound address string ("http://host:port"),
+      // which we convert to a ws:// URL for the native WebSocket client.
       const { app } = buildTestServer();
-      await app.listen({ host: "127.0.0.1", port: 0 });
+      const address = await app.listen({ host: "127.0.0.1", port: 0 });
 
       const created = createSessionResponseSchema.parse(
         (
@@ -339,16 +339,39 @@ describe("session API", () => {
         ).json(),
       );
 
-      // Open a websocket and collect every JSON frame the server emits.
-      const ws = await app.injectWS(`/api/ws?sessionId=${created.sessionId}`);
+      // Connect using the browser-compatible WebSocket API (available
+      // globally in bun). We wait for `open` before submitting a move.
+      // After `open` fires, we also yield the event loop once (via a
+      // zero-delay timer) so the server-side handler — which awaits two
+      // resolved promises after the handshake — has time to register its
+      // event-bus subscription before we publish a move.
+      const wsUrl = address.replace("http://", "ws://");
+      const ws = new WebSocket(
+        `${wsUrl}/api/ws?sessionId=${created.sessionId}`,
+      );
+      await new Promise<void>((resolve, reject) => {
+        ws.addEventListener("open", () => resolve());
+        ws.addEventListener("error", (e) => reject(e));
+      });
+      // Yield to let the server-side async subscription setup complete.
+      // The handler awaits two resolved promises (getById + subscribe)
+      // before the subscription is active; a macrotask yield is enough.
+      await new Promise<void>((resolve) => setTimeout(resolve, 10));
+
       const frames: SessionEvent[] = [];
-      const opened = new Promise<void>((resolve) => {
-        ws.on("message", (data) => {
-          const parsed = sessionEventSchema.parse(
-            JSON.parse(data.toString("utf8")),
-          );
-          frames.push(parsed);
-          resolve();
+      // Reject on parse failure so the promise rejects (and the test
+      // fails with a useful error) rather than silently timing out.
+      const gotFrame = new Promise<void>((resolve, reject) => {
+        ws.addEventListener("message", (event) => {
+          try {
+            const parsed = sessionEventSchema.parse(
+              JSON.parse(event.data as string),
+            );
+            frames.push(parsed);
+            resolve();
+          } catch (e) {
+            reject(e as Error);
+          }
         });
       });
 
@@ -359,13 +382,12 @@ describe("session API", () => {
         payload: { moveNotation: "Ca2n" },
       });
 
-      await opened;
+      await gotFrame;
       expect(frames.some((f) => f.type === "move")).toBe(true);
 
-      // Wait for the socket to fully close before tearing down the
-      // server, so jest does not see lingering open handles.
+      // Wait for the close handshake to complete before shutting down.
       const closed = new Promise<void>((resolve) =>
-        ws.on("close", () => resolve()),
+        ws.addEventListener("close", () => resolve()),
       );
       ws.close();
       await closed;
@@ -373,6 +395,12 @@ describe("session API", () => {
       // Avoid an unused-variable lint: accepted's existence verifies the
       // accept flow succeeded before we even tried to subscribe.
       expect(accepted.sessionId).toBe(created.sessionId);
+
+      // Force-close any lingering TCP connections (the ws package's keep-alive
+      // socket) so that app.close() resolves promptly rather than hanging.
+      (
+        app.server as { closeAllConnections?: () => void }
+      ).closeAllConnections?.();
       await app.close();
     });
   });

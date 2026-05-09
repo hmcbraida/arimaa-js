@@ -56,6 +56,7 @@ export function Board({
   const snapshot = game.getSnapshot();
   // Memoised on revision so that selection or drag-hint changes (which do not
   // alter game state) do not trigger the expensive legal-step computation.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: revision is an intentional trigger dependency for the mutable game object
   const legalSteps = useMemo(
     () => game.listVisibleLegalSteps(),
     // eslint-disable-next-line react-hooks/exhaustive-deps

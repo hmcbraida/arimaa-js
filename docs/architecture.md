@@ -241,7 +241,7 @@ The flow for submitting a turn:
 Run all checks:
 
 ```bash
-bun run test       # Jest
+bun run test       # Unit tests
 bun run test:ui    # Playwright
 bun run build      # TypeScript + Vite (type errors surface here)
 bun run lint       # ESLint + Biome

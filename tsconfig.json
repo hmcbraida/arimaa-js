@@ -15,7 +15,7 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "types": ["node", "jest"]
+    "types": ["bun-types"]
   },
   "include": ["src", "tests", "*.config.*", "eslint.config.js"],
   "references": []

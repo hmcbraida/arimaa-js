@@ -960,7 +960,14 @@ export class ArimaaGame {
     this.pendingAction = step.pendingAction;
     this.stepsTakenThisTurn += 1;
 
-    return { piece, from: step.from, to: step.to, prevPendingAction, prevStepsTaken, captures };
+    return {
+      piece,
+      from: step.from,
+      to: step.to,
+      prevPendingAction,
+      prevStepsTaken,
+      captures,
+    };
   }
 
   /**
@@ -1039,7 +1046,11 @@ export class ArimaaGame {
     // generateMovementSteps returns an eagerly evaluated array, so mutating
     // the board in withSearchStep during iteration is safe.
     for (const step of this.generateMovementSteps()) {
-      if (this.withSearchStep(step, () => this.hasLegalCompletion(ignoreRepetition))) {
+      if (
+        this.withSearchStep(step, () =>
+          this.hasLegalCompletion(ignoreRepetition),
+        )
+      ) {
         return true;
       }
     }
