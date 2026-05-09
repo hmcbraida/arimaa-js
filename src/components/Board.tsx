@@ -157,8 +157,12 @@ export function Board({
   );
 
   return (
-    <section aria-label="Arimaa board" className="w-full max-w-[680px]">
-      <div className="grid grid-cols-[2rem_repeat(8,minmax(0,1fr))] grid-rows-[repeat(8,minmax(0,1fr))_2rem] border border-tn-border">
+    <section aria-label="Arimaa board" className="w-full max-w-[680px] overflow-x-auto">
+      {/* minmax(44px,1fr) keeps each column at the 44 px touch-target minimum.
+          On viewports narrower than 384 px (32 px label + 8×44 px) the grid
+          exceeds the section width; overflow-x-auto on the section lets users
+          scroll rather than causing the columns to collapse. */}
+      <div className="grid grid-cols-[2rem_repeat(8,minmax(44px,1fr))] grid-rows-[repeat(8,minmax(0,1fr))_2rem] border border-tn-border">
         {ranks.map((rank) => (
           <Fragment key={`rank-row-${rank}`}>
             <div
@@ -205,7 +209,7 @@ export function Board({
               return (
                 <button
                   aria-label={squareName}
-                  className={`relative flex aspect-square min-h-12 items-center justify-center border-b border-l border-tn-border ${stateColor} ${cursorClass} focus:outline-none focus:ring-2 focus:ring-inset focus:ring-tn-blue`}
+                  className={`relative flex aspect-square items-center justify-center border-b border-l border-tn-border ${stateColor} ${cursorClass} focus:outline-none focus:ring-2 focus:ring-inset focus:ring-tn-blue`}
                   data-testid={`square-${squareName}`}
                   key={squareName}
                   onClick={() => handleSquareClick(square)}

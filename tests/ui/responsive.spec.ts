@@ -90,6 +90,40 @@ test.describe("Responsive layout — offline game page", () => {
     await assertNoHorizontalOverflow(page);
   });
 
+  /**
+   * Board squares must not overflow their CSS Grid column tracks.
+   *
+   * The failure mode: `min-h-*` on the button can force the element wider
+   * than its column track via the `aspect-ratio` transfer (the browser
+   * sets width = height when height is constrained). On narrow viewports
+   * this makes adjacent squares overlap each other horizontally, which is
+   * the visual "horizontal collapse" the user sees.
+   *
+   * We verify that, reading the squares left-to-right across rank 1, each
+   * square starts at or after the right edge of the previous one.
+   */
+  test("board squares do not overflow their grid column tracks", async ({
+    page,
+  }) => {
+    await page.goto("offline");
+    // In the default (gold's perspective, unflipped) layout, file 'a' is the
+    // leftmost data column and file 'h' is the rightmost.
+    const filesLeftToRight = ["a", "b", "c", "d", "e", "f", "g", "h"] as const;
+    let prevRight = -Infinity;
+    let prevLabel = "left edge";
+    for (const file of filesLeftToRight) {
+      const sq = `${file}1`;
+      const box = await page.getByTestId(`square-${sq}`).boundingBox();
+      expect(box, `${sq}: element must be present`).not.toBeNull();
+      expect(
+        box!.x,
+        `${sq} must not overlap ${prevLabel} (right edge at ${prevRight.toFixed(1)}px)`,
+      ).toBeGreaterThanOrEqual(prevRight - 1); // 1 px tolerance for sub-pixel rounding
+      prevRight = box!.x + box!.width;
+      prevLabel = sq;
+    }
+  });
+
   test("board section is fully visible within viewport width", async ({
     page,
   }) => {
