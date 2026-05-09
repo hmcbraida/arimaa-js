@@ -1,0 +1,16 @@
+# Dockerfile build-context exclusions.
+#
+# These paths are either irrelevant to a built image or would slow the
+# context upload to a crawl (`node_modules` is rebuilt inside each
+# image; build artefacts and reports do not belong in production).
+
+node_modules
+dist
+coverage
+test-results
+playwright-report
+.vite
+.git
+.agents
+.codex
+*.log

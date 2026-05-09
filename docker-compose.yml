@@ -1,0 +1,75 @@
+# docker-compose stack for the Arimaa networked-play app.
+#
+# The stack has four services:
+#
+# - postgres : the persistence layer
+# - nats     : the event bus used to fan out moves to websocket clients
+# - api      : the Fastify session API server (runs migrations on start)
+# - web      : nginx serving the static SPA and reverse-proxying /api
+#
+# `docker compose up --build` brings the entire system up. The web
+# service binds host port 8080 by default; visit http://localhost:8080
+# to play.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      # Credentials are non-sensitive defaults for local development.
+      # Production deployments should override DATABASE_URL on the api
+      # service and pass real secrets via a secret store.
+      POSTGRES_USER: arimaa
+      POSTGRES_PASSWORD: arimaa
+      POSTGRES_DB: arimaa
+    healthcheck:
+      # `pg_isready` returns success only when postgres is ready to
+      # accept connections, which prevents the api service from
+      # racing the database during the first cold start.
+      test: ["CMD-SHELL", "pg_isready -U arimaa -d arimaa"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  nats:
+    image: nats:2.11-alpine
+    # No volume — NATS core (which is what we use) does not persist
+    # subjects across restarts, and that is fine for the live event
+    # fan-out use case.
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/server.Dockerfile
+    environment:
+      DATABASE_URL: postgres://arimaa:arimaa@postgres:5432/arimaa
+      NATS_URL: nats://nats:4222
+      PORT: "3001"
+      HOST: 0.0.0.0
+    depends_on:
+      postgres:
+        # Wait for the database to pass the healthcheck above so the
+        # migration runner does not see "the server is starting up"
+        # errors.
+        condition: service_healthy
+      nats:
+        condition: service_started
+    # Restart on crash so a transient connection error during a
+    # database failover does not leave the API offline indefinitely.
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/nginx.Dockerfile
+    depends_on:
+      - api
+    ports:
+      # Host:container. Pick a port that is unlikely to clash with a
+      # local dev server. Override via COMPOSE_PROJECT_NAME if needed.
+      - "8080:80"
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
