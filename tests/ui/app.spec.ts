@@ -60,18 +60,21 @@ test.describe("Arimaa app", () => {
     await expect(page.getByText(/end of move/i)).toHaveCount(0);
   });
 
-  test("can pull with a shift-click when a move is ambiguous", async ({
+  test("can convert an ambiguous move into a pull on the next click", async ({
     page,
   }) => {
     await page.goto("/?scenario=pull");
 
     await page.getByTestId("square-c2").click();
-    await page.getByTestId("square-c3").click({ modifiers: ["Shift"] });
+    await page.getByTestId("square-c3").click();
 
     await expect(page.getByText("Hc2n")).toBeVisible();
     await expect(
       page.getByTestId("square-c1").getByTestId("piece-r"),
     ).toBeVisible();
+    await expect(
+      page.getByTestId("square-c3").getByTestId("piece-H"),
+    ).toHaveCount(0);
 
     await page.getByTestId("square-c1").click();
     await page.getByTestId("square-c2").click();

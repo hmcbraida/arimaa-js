@@ -7,3 +7,5 @@ Checks:
 - bun run build
 - bun run lint
 - bun run test:ui
+
+Always prefer reworking the architecture to implementing a hack.

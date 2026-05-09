@@ -63,7 +63,11 @@ export function GameView({ initialGame }: GameViewProps = {}) {
           <h1 className="text-3xl font-semibold text-stone-950">Arimaa</h1>
         </header>
         <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
-          <Board game={game} onStep={handleStep} />
+          <Board
+            game={game}
+            onStep={handleStep}
+            onUndoVisibleStep={handleUndoVisibleStep}
+          />
           <ControllerPanel
             game={game}
             onSubmitTurn={handleSubmitTurn}
