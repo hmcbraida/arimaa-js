@@ -12,11 +12,14 @@
  */
 
 import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useState } from "react";
+import { AboutModal } from "./AboutModal";
 import { Tabs } from "./ui/Tabs";
 
 export function AppShell() {
   const navigate = useNavigate();
   const path = useRouterState({ select: (state) => state.location.pathname });
+  const [aboutOpen, setAboutOpen] = useState(false);
 
   // The session view is a sub-screen of the games tab so we treat
   // it the same way for highlighting purposes.
@@ -25,9 +28,17 @@ export function AppShell() {
   return (
     <main className="min-h-screen bg-stone-50 px-6 py-8 text-stone-950">
       <div className="mx-auto flex max-w-7xl flex-col gap-8">
-        <header className="border-b border-stone-300 pb-5">
+        <header className="flex items-center justify-between border-b border-stone-300 pb-5">
           <h1 className="text-3xl font-semibold text-stone-950">Arimaa</h1>
+          <button
+            type="button"
+            onClick={() => setAboutOpen(true)}
+            className="text-sm text-stone-500 hover:text-stone-950"
+          >
+            About
+          </button>
         </header>
+        <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
         <Tabs
           tabs={[
             { id: "games", label: "Games" },

@@ -106,6 +106,7 @@ export function GameView({ initialGame }: GameViewProps = {}) {
         onImportTranscript={handleImportTranscript}
         onSubmitTurn={handleSubmitTurn}
         onUndoVisibleStep={handleUndoVisibleStep}
+        showImport
       />
     </div>
   );

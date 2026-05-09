@@ -9,6 +9,8 @@ interface ControllerPanelProps {
   readonly onImportTranscript: (transcript: string) => void;
   readonly onSubmitTurn: () => void;
   readonly onUndoVisibleStep: () => void;
+  /** When true, the Import Game button is shown. Omit or pass false in network sessions. */
+  readonly showImport?: boolean;
 }
 
 /** Controller-local transcript panel modes. */
@@ -26,6 +28,7 @@ export function ControllerPanel({
   onImportTranscript,
   onSubmitTurn,
   onUndoVisibleStep,
+  showImport = false,
 }: ControllerPanelProps) {
   const [transcriptPanelMode, setTranscriptPanelMode] =
     useState<TranscriptPanelMode>(null);
@@ -37,7 +40,6 @@ export function ControllerPanel({
   const snapshot = game.getSnapshot();
   const moveLog = game.getMoveLog();
   const currentSteps = game.getCurrentMoveSteps();
-  const visibleHistory = game.getHistory();
   const sideLabel = snapshot.sideToMove === Side.Gold ? "Gold" : "Silver";
   const statusText =
     snapshot.status.kind === "finished"
@@ -105,7 +107,7 @@ export function ControllerPanel({
           <button
             aria-label="Step backward"
             className="flex items-center justify-center gap-2 border border-stone-950 px-3 py-2 text-sm font-semibold text-stone-950 disabled:cursor-not-allowed disabled:border-stone-300 disabled:text-stone-300"
-            disabled={visibleHistory.length === 0}
+            disabled={currentSteps.length === 0}
             onClick={onUndoVisibleStep}
             title="Step backward"
             type="button"
@@ -124,16 +126,18 @@ export function ControllerPanel({
           </button>
         </div>
         <div className="grid grid-cols-2 gap-3">
+          {showImport && (
+            <button
+              className="flex items-center justify-center gap-2 border border-stone-950 px-3 py-2 text-sm font-semibold text-stone-950"
+              onClick={handleOpenImportPanel}
+              type="button"
+            >
+              <Upload aria-hidden="true" size={18} strokeWidth={2} />
+              <span>Import Game</span>
+            </button>
+          )}
           <button
-            className="flex items-center justify-center gap-2 border border-stone-950 px-3 py-2 text-sm font-semibold text-stone-950"
-            onClick={handleOpenImportPanel}
-            type="button"
-          >
-            <Upload aria-hidden="true" size={18} strokeWidth={2} />
-            <span>Import Game</span>
-          </button>
-          <button
-            className="flex items-center justify-center gap-2 border border-stone-950 px-3 py-2 text-sm font-semibold text-stone-950"
+            className={`flex items-center justify-center gap-2 border border-stone-950 px-3 py-2 text-sm font-semibold text-stone-950${showImport ? "" : " col-span-2"}`}
             onClick={handleOpenExportPanel}
             type="button"
           >

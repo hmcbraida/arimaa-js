@@ -278,16 +278,6 @@ export function NetworkGameView({
         </div>
       )}
       {/* Role / perspective indicator */}
-      {!spectator && stored?.side === "gold" && (
-        <div className="border border-amber-400 bg-amber-50 p-4 text-sm font-medium text-amber-900">
-          You are playing Gold.
-        </div>
-      )}
-      {!spectator && stored?.side === "silver" && (
-        <div className="border border-stone-400 bg-stone-100 p-4 text-sm font-medium text-stone-800">
-          You are playing Silver.
-        </div>
-      )}
       {spectator && (
         <div className="flex items-center justify-between gap-4 border border-stone-300 bg-stone-50 p-4 text-sm text-stone-700">
           <span>You are spectating this game. Moves are read-only.</span>
