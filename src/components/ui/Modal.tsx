@@ -81,17 +81,17 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
       role="dialog"
       aria-modal="true"
       aria-label={title}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/40"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-tn-bg/75"
       onClick={onBackdropClick}
       onKeyDown={onKeyDown}
     >
-      <div className="w-full max-w-md border border-stone-950 bg-stone-50 p-6">
+      <div className="w-full max-w-md border border-tn-border bg-tn-surface p-6">
         <header className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-stone-950">{title}</h2>
+          <h2 className="text-lg text-tn-fg">{title}</h2>
           <button
             type="button"
             aria-label="Close dialog"
-            className="text-stone-500 hover:text-stone-950"
+            className="text-tn-comment hover:text-tn-fg"
             onClick={onClose}
           >
             x

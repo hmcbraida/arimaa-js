@@ -75,7 +75,7 @@ export function JoinGameModal({ open, onClose, onJoined }: JoinGameModalProps) {
         autoComplete="one-time-code"
         autoFocus
       />
-      {error !== null && <p className="text-sm text-rose-700">{error}</p>}
+      {error !== null && <p className="text-sm text-tn-red">{error}</p>}
       <div className="flex justify-end gap-2">
         <Button onClick={onClose} disabled={submitting}>
           Cancel

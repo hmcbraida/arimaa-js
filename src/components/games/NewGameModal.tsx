@@ -55,7 +55,7 @@ export function NewGameModal({ open, onClose, onCreated }: NewGameModalProps) {
 
   return (
     <Modal open={open} onClose={onClose} title="Start a new game">
-      <p className="text-sm text-stone-700">
+      <p className="text-sm text-tn-fg-muted">
         Choose your side. You will get an 8-digit code to share with your
         opponent so they can join.
       </p>
@@ -68,11 +68,17 @@ export function NewGameModal({ open, onClose, onCreated }: NewGameModalProps) {
         {(["gold", "silver"] as const).map((option) => (
           <label
             key={option}
-            className={`flex flex-1 cursor-pointer items-center justify-center gap-2 border px-3 py-2 text-sm font-semibold ${
+            className={`flex flex-1 cursor-pointer items-center justify-center gap-2 px-3 py-2 text-sm ${
               side === option
-                ? "border-stone-950 bg-stone-950 text-stone-50"
-                : "border-stone-300 text-stone-700"
+                ? "bg-tn-blue text-tn-bg"
+                : "bg-tn-overlay text-tn-fg"
             }`}
+            style={{
+              boxShadow:
+                side === option
+                  ? "0 -1px 0 0 rgba(255,255,255,0.12), 0 3px 0 0 #3d59a1"
+                  : "0 -1px 0 0 rgba(255,255,255,0.04), 0 3px 0 0 #0f1017",
+            }}
           >
             <input
               type="radio"
@@ -86,7 +92,7 @@ export function NewGameModal({ open, onClose, onCreated }: NewGameModalProps) {
           </label>
         ))}
       </fieldset>
-      {error !== null && <p className="text-sm text-rose-700">{error}</p>}
+      {error !== null && <p className="text-sm text-tn-red">{error}</p>}
       <div className="flex justify-end gap-2">
         <Button onClick={onClose} disabled={submitting}>
           Cancel

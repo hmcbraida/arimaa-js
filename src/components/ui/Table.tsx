@@ -42,20 +42,20 @@ export function Table<TRow>({
 }: TableProps<TRow>) {
   if (rows.length === 0 && emptyMessage !== undefined) {
     return (
-      <div className="border border-stone-300 p-6 text-center text-sm text-stone-500">
+      <div className="border border-tn-border p-6 text-center text-sm text-tn-fg-muted">
         {emptyMessage}
       </div>
     );
   }
 
   return (
-    <table className="w-full border-collapse border border-stone-300 text-sm text-stone-950">
-      <thead className="bg-stone-100">
+    <table className="w-full border-collapse border border-tn-border text-sm text-tn-fg">
+      <thead className="bg-tn-panel">
         <tr>
           {columns.map((col) => (
             <th
               key={col.id}
-              className={`border-b border-stone-300 px-3 py-2 text-left text-stone-700 ${col.className ?? ""}`}
+              className={`border-b border-tn-border px-3 py-2 text-left font-normal text-tn-fg-muted ${col.className ?? ""}`}
             >
               {col.header}
             </th>
@@ -85,7 +85,7 @@ export function Table<TRow>({
                     }
                   : undefined
               }
-              className={`border-b border-stone-200 ${interactive ? "cursor-pointer hover:bg-stone-100" : ""}`}
+              className={`border-b border-tn-border ${interactive ? "cursor-pointer hover:bg-tn-overlay" : ""}`}
             >
               {columns.map((col) => (
                 <td key={col.id} className={`px-3 py-2 ${col.className ?? ""}`}>

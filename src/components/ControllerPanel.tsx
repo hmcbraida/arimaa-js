@@ -1,6 +1,7 @@
 import { Check, Download, Undo2, Upload } from "lucide-react";
 import { useCallback, useState } from "react";
 import { type AppliedStepRecord, type ArimaaGame, Side } from "../game";
+import { Button } from "./ui/Button";
 
 /** Props for the controller panel super-component. */
 interface ControllerPanelProps {
@@ -95,156 +96,134 @@ export function ControllerPanel({
   }, [importDraft, onImportTranscript]);
 
   return (
-    <aside className="flex w-full max-w-[420px] flex-col gap-6 border-l border-stone-300 pl-6">
+    <aside className="flex w-full max-w-[420px] flex-col gap-6 border-l border-tn-border pl-6">
       <header className="flex flex-col gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-stone-950">Controller</h2>
-          <p className="mt-1 text-sm text-stone-600">
-            {sideLabel} {snapshot.moveNumber}
+          <p className="mt-1 text-sm text-tn-fg-muted">
+            Current turn: <b>{sideLabel} {snapshot.moveNumber}</b>
           </p>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <button
+          <Button
             aria-label="Step backward"
-            className="flex items-center justify-center gap-2 border border-stone-950 px-3 py-2 text-sm font-semibold text-stone-950 disabled:cursor-not-allowed disabled:border-stone-300 disabled:text-stone-300"
             disabled={currentSteps.length === 0}
             onClick={onUndoVisibleStep}
             title="Step backward"
-            type="button"
           >
-            <Undo2 aria-hidden="true" size={18} strokeWidth={2} />
+            <Undo2 aria-hidden="true" size={18} strokeWidth={1.5} />
             <span>Step Back</span>
-          </button>
-          <button
-            className="flex items-center justify-center gap-2 border border-stone-950 bg-stone-950 px-3 py-2 text-sm font-semibold text-stone-50 disabled:cursor-not-allowed disabled:border-stone-300 disabled:bg-transparent disabled:text-stone-300"
+          </Button>
+          <Button
+            variant="primary"
             disabled={!game.canFinishTurn()}
             onClick={onSubmitTurn}
-            type="button"
           >
-            <Check aria-hidden="true" size={18} strokeWidth={2} />
+            <Check aria-hidden="true" size={18} strokeWidth={1.5} />
             <span>Submit Turn</span>
-          </button>
+          </Button>
         </div>
         <div className="grid grid-cols-2 gap-3">
           {showImport && (
-            <button
-              className="flex items-center justify-center gap-2 border border-stone-950 px-3 py-2 text-sm font-semibold text-stone-950"
-              onClick={handleOpenImportPanel}
-              type="button"
-            >
-              <Upload aria-hidden="true" size={18} strokeWidth={2} />
+            <Button onClick={handleOpenImportPanel}>
+              <Upload aria-hidden="true" size={18} strokeWidth={1.5} />
               <span>Import Game</span>
-            </button>
+            </Button>
           )}
-          <button
-            className={`flex items-center justify-center gap-2 border border-stone-950 px-3 py-2 text-sm font-semibold text-stone-950${showImport ? "" : " col-span-2"}`}
+          <Button
+            className={showImport ? "" : "col-span-2"}
             onClick={handleOpenExportPanel}
-            type="button"
           >
-            <Download aria-hidden="true" size={18} strokeWidth={2} />
+            <Download aria-hidden="true" size={18} strokeWidth={1.5} />
             <span>Export Game</span>
-          </button>
+          </Button>
         </div>
         {(transcriptPanelMode !== null || transcriptMessage !== null) && (
           <section
             aria-label="Game transcript tools"
-            className="flex flex-col gap-3 border border-stone-300 p-3"
+            className="flex flex-col gap-3 border border-tn-border p-3"
           >
             {transcriptMessage !== null && (
-              <p className="text-sm text-stone-700">{transcriptMessage}</p>
+              <p className="text-sm text-tn-fg-muted">{transcriptMessage}</p>
             )}
             {transcriptPanelMode === "import" && (
               <>
                 <label
-                  className="text-sm font-semibold text-stone-950"
+                  className="text-sm text-tn-fg"
                   htmlFor="transcript-import"
                 >
                   Transcript to import
                 </label>
                 <textarea
-                  className="min-h-44 w-full resize-y border border-stone-300 p-3 font-mono text-sm text-stone-950 focus:outline-none focus:ring-2 focus:ring-stone-950"
+                  className="min-h-44 w-full resize-y border border-tn-border bg-tn-panel p-3 font-mono text-sm text-tn-fg focus:outline-none focus:ring-2 focus:ring-tn-blue"
                   id="transcript-import"
                   onChange={(event) => setImportDraft(event.target.value)}
                   placeholder="Paste an Arimaa setup-and-moves transcript"
                   value={importDraft}
                 />
                 <div className="flex gap-3">
-                  <button
-                    className="border border-stone-950 bg-stone-950 px-3 py-2 text-sm font-semibold text-stone-50"
-                    onClick={handleImport}
-                    type="button"
-                  >
+                  <Button variant="primary" onClick={handleImport}>
                     Load Transcript
-                  </button>
-                  <button
-                    className="border border-stone-300 px-3 py-2 text-sm font-semibold text-stone-700"
+                  </Button>
+                  <Button
                     onClick={() => {
                       setTranscriptPanelMode(null);
                       setTranscriptMessage(null);
                     }}
-                    type="button"
                   >
                     Cancel
-                  </button>
+                  </Button>
                 </div>
               </>
             )}
             {transcriptPanelMode === "export" && (
               <>
                 <label
-                  className="text-sm font-semibold text-stone-950"
+                  className="text-sm text-tn-fg"
                   htmlFor="transcript-export"
                 >
                   Exported transcript
                 </label>
                 <textarea
                   aria-label="Exported transcript"
-                  className="min-h-44 w-full resize-y border border-stone-300 p-3 font-mono text-sm text-stone-950 focus:outline-none focus:ring-2 focus:ring-stone-950"
+                  className="min-h-44 w-full resize-y border border-tn-border bg-tn-panel p-3 font-mono text-sm text-tn-fg focus:outline-none focus:ring-2 focus:ring-tn-blue"
                   id="transcript-export"
                   readOnly
                   value={exportTranscript}
                 />
-                <button
-                  className="self-start border border-stone-300 px-3 py-2 text-sm font-semibold text-stone-700"
+                <Button
+                  className="self-start"
                   onClick={() => {
                     setTranscriptPanelMode(null);
                     setTranscriptMessage(null);
                   }}
-                  type="button"
                 >
                   Close
-                </button>
+                </Button>
               </>
             )}
           </section>
         )}
       </header>
 
-      <dl className="grid grid-cols-3 gap-3 border-y border-stone-300 py-4 text-sm">
+      <dl className="grid grid-cols-3 gap-3 border-y border-tn-border py-4 text-sm">
         <div>
-          <dt className="text-stone-500">Steps</dt>
-          <dd className="mt-1 font-semibold text-stone-950">
-            {snapshot.stepsTakenThisTurn}/4
-          </dd>
+          <dt className="text-tn-fg-muted">Steps</dt>
+          <dd className="mt-1 text-tn-fg">{snapshot.stepsTakenThisTurn}/4</dd>
         </div>
         <div>
-          <dt className="text-stone-500">Moves</dt>
-          <dd className="mt-1 font-semibold text-stone-950">
-            {moveLog.length}
-          </dd>
+          <dt className="text-tn-fg-muted">Moves</dt>
+          <dd className="mt-1 text-tn-fg">{moveLog.length}</dd>
         </div>
         <div>
-          <dt className="text-stone-500">Status</dt>
-          <dd className="mt-1 font-semibold text-stone-950">{statusText}</dd>
+          <dt className="text-tn-fg-muted">Status</dt>
+          <dd className="mt-1 text-tn-fg">{statusText}</dd>
         </div>
       </dl>
 
       <section className="flex flex-col gap-3">
-        <h3 className="text-sm font-semibold uppercase text-stone-500">
-          Current Move
-        </h3>
+        <h3 className="text-sm uppercase text-tn-fg-muted">Current Move</h3>
         {currentSteps.length === 0 ? (
-          <p className="border-t border-stone-200 pt-3 text-sm text-stone-500">
+          <p className="border-t border-tn-border pt-3 text-sm text-tn-fg-muted">
             No visible steps
           </p>
         ) : (
@@ -253,23 +232,21 @@ export function ControllerPanel({
       </section>
 
       <section className="flex flex-col gap-3">
-        <h3 className="text-sm font-semibold uppercase text-stone-500">
-          Move History
-        </h3>
+        <h3 className="text-sm uppercase text-tn-fg-muted">Move History</h3>
         {moveLog.length === 0 ? (
-          <p className="border-t border-stone-200 pt-3 text-sm text-stone-500">
+          <p className="border-t border-tn-border pt-3 text-sm text-tn-fg-muted">
             No completed moves
           </p>
         ) : (
           <div className="flex max-h-[360px] flex-col gap-4 overflow-auto pr-2">
             {moveLog.map((move) => (
-              <article className="border-t border-stone-200 pt-3" key={move.id}>
+              <article className="border-t border-tn-border pt-3" key={move.id}>
                 <div className="mb-2 flex items-baseline justify-between gap-3">
-                  <h4 className="font-semibold text-stone-950">
+                  <h4 className="text-tn-fg">
                     {move.moveNumber}
                     {move.side === Side.Gold ? "g" : "s"}
                   </h4>
-                  <p className="text-right font-mono text-sm text-stone-600">
+                  <p className="text-right font-mono text-sm text-tn-fg-muted">
                     {move.notation}
                   </p>
                 </div>
@@ -312,8 +289,8 @@ function StepList({ steps }: StepListProps) {
           className="flex items-center justify-between gap-4 text-sm"
           key={step.id}
         >
-          <span className="text-stone-500">Step {step.stepNumber}</span>
-          <span className="font-mono text-stone-950">{step.notation}</span>
+          <span className="text-tn-fg-muted">Step {step.stepNumber}</span>
+          <span className="font-mono text-tn-fg">{step.notation}</span>
         </li>
       ))}
     </ol>

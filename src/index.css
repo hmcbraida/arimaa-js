@@ -1,3 +1,10 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html {
+    font-family: "Barlow", ui-sans-serif, system-ui, sans-serif;
+    background-color: #1a1b2e;
+  }
+}

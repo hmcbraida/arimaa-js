@@ -26,14 +26,14 @@ export function AppShell() {
   const activeTab = path === "/offline" ? "offline" : "games";
 
   return (
-    <main className="min-h-screen bg-stone-50 px-6 py-8 text-stone-950">
+    <main className="min-h-screen bg-tn-bg px-6 py-8 text-tn-fg">
       <div className="mx-auto flex max-w-7xl flex-col gap-8">
-        <header className="flex items-center justify-between border-b border-stone-300 pb-5">
-          <h1 className="text-3xl font-semibold text-stone-950">Arimaa</h1>
+        <header className="flex items-center justify-between border-b border-tn-border pb-5">
+          <h1 className="text-3xl text-tn-fg">Arimaa</h1>
           <button
             type="button"
             onClick={() => setAboutOpen(true)}
-            className="text-sm text-stone-500 hover:text-stone-950"
+            className="text-sm text-tn-fg-muted hover:text-tn-fg"
           >
             About
           </button>

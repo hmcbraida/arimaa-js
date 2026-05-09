@@ -158,11 +158,11 @@ export function Board({
 
   return (
     <section aria-label="Arimaa board" className="w-full max-w-[680px]">
-      <div className="grid grid-cols-[2rem_repeat(8,minmax(0,1fr))] grid-rows-[repeat(8,minmax(0,1fr))_2rem] border border-stone-950">
+      <div className="grid grid-cols-[2rem_repeat(8,minmax(0,1fr))] grid-rows-[repeat(8,minmax(0,1fr))_2rem] border border-tn-border">
         {ranks.map((rank) => (
           <Fragment key={`rank-row-${rank}`}>
             <div
-              className="flex items-center justify-center border-b border-stone-300 bg-stone-50 text-sm text-stone-700"
+              className="flex items-center justify-center border-b border-tn-border bg-tn-bg text-sm text-tn-fg-muted"
               key={`rank-${rank}`}
             >
               {rank + 1}
@@ -187,15 +187,15 @@ export function Board({
                 squareEquals(step.from, square),
               );
               const darkSquare = (file + rank) % 2 === 1;
-              const baseColor = darkSquare ? "bg-emerald-100" : "bg-stone-100";
+              const baseColor = darkSquare ? "bg-tn-surface" : "bg-tn-panel";
               const stateColor = selectedSquare
-                ? "bg-amber-200"
+                ? "bg-tn-yellow/30"
                 : destination
-                  ? "bg-lime-200"
+                  ? "bg-tn-green/25"
                   : possibleDragSource
-                    ? "bg-amber-100"
+                    ? "bg-tn-yellow/15"
                     : possibleDragDestination
-                      ? "bg-lime-100"
+                      ? "bg-tn-green/15"
                       : baseColor;
               const cursorClass =
                 canStartStep || destination || possibleDragSource
@@ -205,7 +205,7 @@ export function Board({
               return (
                 <button
                   aria-label={squareName}
-                  className={`relative flex aspect-square min-h-12 items-center justify-center border-b border-l border-stone-300 ${stateColor} ${cursorClass} focus:outline-none focus:ring-2 focus:ring-inset focus:ring-stone-950`}
+                  className={`relative flex aspect-square min-h-12 items-center justify-center border-b border-l border-tn-border ${stateColor} ${cursorClass} focus:outline-none focus:ring-2 focus:ring-inset focus:ring-tn-blue`}
                   data-testid={`square-${squareName}`}
                   key={squareName}
                   onClick={() => handleSquareClick(square)}
@@ -213,14 +213,14 @@ export function Board({
                 >
                   {isTrapSquare(square) && (
                     <span
-                      className="absolute text-lg font-bold text-rose-800/45"
+                      className="absolute text-lg text-tn-red/50"
                       data-testid={`trap-${squareName}`}
                     >
                       x
                     </span>
                   )}
                   {destination && piece === null && (
-                    <span className="h-3 w-3 border border-lime-800 bg-lime-500" />
+                    <span className="h-3 w-3 border border-tn-green bg-tn-green/70" />
                   )}
                   {piece !== null && <PieceToken piece={piece} />}
                 </button>
@@ -228,10 +228,10 @@ export function Board({
             })}
           </Fragment>
         ))}
-        <div className="bg-stone-50" />
+        <div className="bg-tn-bg" />
         {files.map((file) => (
           <div
-            className="flex items-center justify-center border-l border-stone-300 bg-stone-50 text-sm text-stone-700"
+            className="flex items-center justify-center border-l border-tn-border bg-tn-bg text-sm text-tn-fg-muted"
             key={`file-${file}`}
           >
             {String.fromCharCode(97 + file)}
@@ -239,13 +239,13 @@ export function Board({
         ))}
       </div>
       {possibleDrags.length > 0 && (
-        <p className="mt-3 text-sm text-stone-600">
+        <p className="mt-3 text-sm text-tn-fg-muted">
           Select one of the weaker adjacent enemy pieces to start a pull, or
           continue with another move.
         </p>
       )}
       {pendingPull !== null && (
-        <p className="mt-3 text-sm text-stone-600">
+        <p className="mt-3 text-sm text-tn-fg-muted">
           Complete the pull by moving the dragged piece from{" "}
           {formatSquare(pendingPull.pulledFrom)} to{" "}
           {formatSquare(pendingPull.pulledTo)}.
@@ -255,7 +255,7 @@ export function Board({
         possibleDrags.length === 0 &&
         pendingPull === null &&
         selectedSteps.some((step) => step.role === "pull-start") && (
-          <p className="mt-3 text-sm text-stone-600">
+          <p className="mt-3 text-sm text-tn-fg-muted">
             Moving away from weaker adjacent enemy pieces can be turned into a
             pull on the next click.
           </p>

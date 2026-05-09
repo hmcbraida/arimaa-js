@@ -32,6 +32,19 @@ const PIECE_ICONS: Record<
   [PieceType.Elephant]: ElephantIcon,
 };
 
+// Gold (#e0af68) and silver (#cfc9c2) piece styles with explicit inline values
+// so the colours are guaranteed regardless of Tailwind purge or opacity handling.
+const GOLD_STYLE: React.CSSProperties = {
+  borderColor: "#e0af68",
+  backgroundColor: "rgba(224, 175, 104, 0.18)",
+  color: "#e0af68",
+};
+const SILVER_STYLE: React.CSSProperties = {
+  borderColor: "#cfc9c2",
+  backgroundColor: "rgba(207, 201, 194, 0.14)",
+  color: "#cfc9c2",
+};
+
 /** Props for the board piece token. */
 interface PieceTokenProps {
   readonly piece: Piece;
@@ -40,22 +53,18 @@ interface PieceTokenProps {
 /**
  * Renders a single square-edged Arimaa piece marker.
  *
- * Gold pieces use an amber palette; Silver pieces use a stone palette.
- * The SVG icon inherits its fill colour from the token's `text-*` class via
- * `currentColor` so no per-icon tinting is needed.
+ * Gold pieces use #e0af68; silver pieces use #cfc9c2. The SVG icon inherits
+ * its fill from the token's `color` via `currentColor`.
  */
 export function PieceToken({ piece }: PieceTokenProps) {
-  const sideClass =
-    piece.side === Side.Gold
-      ? "border-amber-700 bg-amber-200 text-amber-900"
-      : "border-stone-700 bg-stone-200 text-stone-600";
-
+  const sideStyle = piece.side === Side.Gold ? GOLD_STYLE : SILVER_STYLE;
   const Icon = PIECE_ICONS[piece.type];
 
   return (
     <span
       aria-label={`${piece.side} ${PIECE_LABELS[piece.type]}`}
-      className={`flex h-9 w-9 items-center justify-center border-2 ${sideClass}`}
+      className="flex h-9 w-9 items-center justify-center border-2"
+      style={sideStyle}
       data-testid={`piece-${pieceToLetter(piece)}`}
     >
       <Icon className="h-7 w-7" />

@@ -28,15 +28,15 @@ export function TextField({
   const id = useId();
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-sm font-semibold text-stone-950">
+      <label htmlFor={id} className="text-sm text-tn-fg">
         {label}
       </label>
       <input
         id={id}
-        className={`border border-stone-300 px-3 py-2 text-sm text-stone-950 focus:outline-none focus:ring-2 focus:ring-stone-950 ${className}`}
+        className={`border border-tn-border bg-tn-panel px-3 py-2 text-sm text-tn-fg focus:outline-none focus:ring-2 focus:ring-tn-blue ${className}`}
         {...rest}
       />
-      {hint !== undefined && <p className="text-xs text-stone-500">{hint}</p>}
+      {hint !== undefined && <p className="text-xs text-tn-fg-muted">{hint}</p>}
     </div>
   );
 }

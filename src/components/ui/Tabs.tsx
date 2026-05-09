@@ -28,7 +28,7 @@ interface TabsProps {
 export function Tabs({ tabs, activeId, onChange, children }: TabsProps) {
   return (
     <div className="flex flex-col gap-6">
-      <div role="tablist" className="flex gap-2 border-b border-stone-300">
+      <div role="tablist" className="flex gap-2 border-b border-tn-border">
         {tabs.map((tab) => {
           const isActive = tab.id === activeId;
           return (
@@ -39,10 +39,10 @@ export function Tabs({ tabs, activeId, onChange, children }: TabsProps) {
               // ARIA selected state communicates the active tab to
               // assistive tech without needing a screen-reader-only label.
               aria-selected={isActive}
-              className={`-mb-px border-b-2 px-3 py-2 text-sm font-semibold ${
+              className={`-mb-px border-b-2 px-3 py-2 text-sm ${
                 isActive
-                  ? "border-stone-950 text-stone-950"
-                  : "border-transparent text-stone-600 hover:text-stone-950"
+                  ? "border-tn-blue text-tn-fg"
+                  : "border-transparent text-tn-fg-muted hover:text-tn-fg"
               }`}
               onClick={() => onChange(tab.id)}
             >

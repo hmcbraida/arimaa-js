@@ -12,45 +12,55 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 /**
- * Visual variants. Two are enough for the current screens:
+ * Visual variants:
  *
- * - `primary`   solid, used for the dominant action ("Submit Turn")
- * - `secondary` outlined, used for everything else
+ * - `primary`   solid Tokyo Night blue, used for the dominant action
+ * - `secondary` elevated surface, used for everything else
  *
- * Adding a third variant is cheap; the union type keeps misuse out at
- * the type level.
+ * Depth is signalled by a flat (zero-blur) box-shadow rather than a border.
  */
 type ButtonVariant = "primary" | "secondary";
 
-/**
- * Component props. We extend the native attributes so existing prop
- * forwarding (e.g. `aria-label`) just works.
- */
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   readonly variant?: ButtonVariant;
   readonly children: ReactNode;
 }
 
+// Colors for the flat (zero-blur) shadow — top rim + bottom drop
+const SHADOW_PRIMARY = "0 -1px 0 0 rgba(255,255,255,0.12), 0 3px 0 0 #3d59a1";
+const SHADOW_SECONDARY = "0 -1px 0 0 rgba(255,255,255,0.04), 0 3px 0 0 #0f1017";
+
 const variantClass: Record<ButtonVariant, string> = {
   primary:
-    "border border-stone-950 bg-stone-950 text-stone-50 disabled:bg-transparent disabled:border-stone-300 disabled:text-stone-300",
+    "bg-tn-blue text-tn-bg disabled:bg-tn-overlay disabled:text-tn-comment",
   secondary:
-    "border border-stone-950 text-stone-950 disabled:border-stone-300 disabled:text-stone-300",
+    "bg-tn-overlay text-tn-fg disabled:bg-tn-panel disabled:text-tn-comment",
+};
+
+const variantShadow: Record<ButtonVariant, string> = {
+  primary: SHADOW_PRIMARY,
+  secondary: SHADOW_SECONDARY,
 };
 
 export function Button({
   variant = "secondary",
   className = "",
   children,
+  disabled,
+  style,
   ...rest
 }: ButtonProps) {
   return (
     <button
       // The `type="button"` default keeps the button from accidentally
-      // submitting parent forms — a common subtle bug. Callers can
-      // still override via the spread.
+      // submitting parent forms. Callers can still override via the spread.
       type="button"
-      className={`flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed ${variantClass[variant]} ${className}`}
+      disabled={disabled}
+      style={{
+        boxShadow: disabled ? "none" : variantShadow[variant],
+        ...style,
+      }}
+      className={`flex items-center justify-center gap-2 px-3 py-2 text-sm disabled:cursor-not-allowed ${variantClass[variant]} ${className}`}
       {...rest}
     >
       {children}

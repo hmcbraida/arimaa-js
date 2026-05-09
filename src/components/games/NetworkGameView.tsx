@@ -265,24 +265,29 @@ export function NetworkGameView({
   return (
     <section className="flex flex-col gap-6">
       {acceptCode !== null && (
-        <div className="border border-amber-500 bg-amber-50 p-4 text-sm text-amber-900">
-          <strong className="font-semibold">Waiting for opponent.</strong> Share
-          this code with your opponent so they can join:{" "}
-          <span className="font-mono text-base font-bold">{acceptCode}</span>
+        <div className="border border-tn-yellow/50 bg-tn-yellow/10 p-4 text-sm text-tn-fg">
+          Waiting for opponent. Share this code with your opponent so they can
+          join:{" "}
+          <span className="font-mono text-base text-tn-yellow">
+            {acceptCode}
+          </span>
         </div>
       )}
       {snapshot.status === "completed" && (
-        <div className="border border-stone-500 bg-stone-100 p-4 text-sm text-stone-900">
+        <div className="border border-tn-border bg-tn-surface p-4 text-sm text-tn-fg">
           Game finished — {snapshot.winner === "gold" ? "Gold" : "Silver"} won (
           {snapshot.reason}).
         </div>
       )}
       {/* Role / perspective indicator */}
       {spectator && (
-        <div className="flex items-center justify-between gap-4 border border-stone-300 bg-stone-50 p-4 text-sm text-stone-700">
+        <div className="flex items-center justify-between gap-4 border border-tn-border bg-tn-panel p-4 text-sm text-tn-fg-muted">
           <span>You are spectating this game. Moves are read-only.</span>
           <button
-            className="whitespace-nowrap rounded border border-stone-400 bg-white px-3 py-1 text-xs font-medium text-stone-700 hover:bg-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500"
+            className="whitespace-nowrap bg-tn-overlay px-3 py-1 text-xs text-tn-fg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-tn-blue"
+            style={{
+              boxShadow: "0 -1px 0 0 rgba(255,255,255,0.04), 0 3px 0 0 #0f1017",
+            }}
             onClick={() => setSpectatorFlipped((f) => !f)}
             type="button"
           >
@@ -291,7 +296,7 @@ export function NetworkGameView({
         </div>
       )}
       {submitError !== null && (
-        <div className="border border-rose-500 bg-rose-50 p-4 text-sm text-rose-900">
+        <div className="border border-tn-red/50 bg-tn-red/10 p-4 text-sm text-tn-fg">
           {submitError}
         </div>
       )}

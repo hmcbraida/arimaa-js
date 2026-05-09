@@ -127,7 +127,7 @@ export function GamesTab() {
       {
         id: "id",
         header: "Session",
-        className: "font-mono text-xs text-stone-500",
+        className: "font-mono text-xs text-tn-comment",
         render: (row: StoredGame) => row.sessionId.slice(0, 8),
       },
     ],
@@ -156,7 +156,7 @@ export function GamesTab() {
       {games.length > PAGE_SIZE && (
         <nav
           aria-label="Pagination"
-          className="flex items-center justify-between text-sm text-stone-700"
+          className="flex items-center justify-between text-sm text-tn-fg-muted"
         >
           <Button
             onClick={() => setPage((p) => Math.max(0, p - 1))}
