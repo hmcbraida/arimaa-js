@@ -87,28 +87,25 @@ export function GameView({ initialGame }: GameViewProps = {}) {
     setRevision((revision) => revision + 1);
   }, []);
 
+  // The page chrome (heading, padding, max-width) is provided by the
+  // AppShell when this component is mounted via the offline route.
+  // GameView therefore only renders the board + controller pair so it
+  // composes cleanly with the shell rather than duplicating headings.
   return (
-    <main className="min-h-screen bg-stone-50 px-6 py-8 text-stone-950">
-      <div className="mx-auto flex max-w-7xl flex-col gap-8">
-        <header className="border-b border-stone-300 pb-5">
-          <h1 className="text-3xl font-semibold text-stone-950">Arimaa</h1>
-        </header>
-        <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
-          <Board
-            key={gameInstanceKey}
-            game={game}
-            onStep={handleStep}
-            onUndoVisibleStep={handleUndoVisibleStep}
-          />
-          <ControllerPanel
-            game={game}
-            onExportTranscript={handleExportTranscript}
-            onImportTranscript={handleImportTranscript}
-            onSubmitTurn={handleSubmitTurn}
-            onUndoVisibleStep={handleUndoVisibleStep}
-          />
-        </div>
-      </div>
-    </main>
+    <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
+      <Board
+        key={gameInstanceKey}
+        game={game}
+        onStep={handleStep}
+        onUndoVisibleStep={handleUndoVisibleStep}
+      />
+      <ControllerPanel
+        game={game}
+        onExportTranscript={handleExportTranscript}
+        onImportTranscript={handleImportTranscript}
+        onSubmitTurn={handleSubmitTurn}
+        onUndoVisibleStep={handleUndoVisibleStep}
+      />
+    </div>
   );
 }

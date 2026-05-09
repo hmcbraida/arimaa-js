@@ -15,7 +15,7 @@ test.describe("Arimaa app", () => {
   test("moves a piece and reflects the step in the controller", async ({
     page,
   }) => {
-    await page.goto("/");
+    await page.goto("/offline");
 
     await expect(page.getByRole("heading", { name: "Arimaa" })).toBeVisible();
     await page.getByTestId("square-a2").click();
@@ -37,7 +37,7 @@ test.describe("Arimaa app", () => {
   test("requires manual submission before committing a turn", async ({
     page,
   }) => {
-    await page.goto("/");
+    await page.goto("/offline");
 
     await page.getByTestId("square-a2").click();
     await page.getByTestId("square-a3").click();
@@ -59,7 +59,7 @@ test.describe("Arimaa app", () => {
   });
 
   test("does not expose the hidden finish-turn step", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/offline");
 
     await expect(page.getByText(/finish-turn/i)).toHaveCount(0);
     await expect(page.getByText(/end of move/i)).toHaveCount(0);
@@ -68,7 +68,7 @@ test.describe("Arimaa app", () => {
   test("can convert an ambiguous move into a pull on the next click", async ({
     page,
   }) => {
-    await page.goto("/?scenario=pull");
+    await page.goto("/offline?scenario=pull");
 
     await page.getByTestId("square-c2").click();
     await page.getByTestId("square-c3").click();
@@ -96,7 +96,7 @@ test.describe("Arimaa app", () => {
   test("imports and exports a transcript through the controller", async ({
     page,
   }) => {
-    await page.goto("/");
+    await page.goto("/offline");
 
     await page.getByRole("button", { name: "Import Game" }).click();
     await page.getByLabel("Transcript to import").fill(importableTranscript);

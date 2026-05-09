@@ -1,29 +1,26 @@
-import { GameView } from "./components/GameView";
-import { ArimaaGame, PieceType, Side, piece } from "./game";
-
-function createInitialGame(): ArimaaGame | undefined {
-  const params = new URLSearchParams(window.location.search);
-
-  if (params.get("scenario") === "pull") {
-    return ArimaaGame.fromPieces(
-      [
-        { square: "c2", piece: piece(Side.Gold, PieceType.Horse) },
-        { square: "c1", piece: piece(Side.Silver, PieceType.Rabbit) },
-        { square: "h7", piece: piece(Side.Silver, PieceType.Rabbit) },
-      ],
-      Side.Gold,
-    );
-  }
-
-  return undefined;
-}
-
 /**
  * Root application component.
  *
- * Styling and UI behavior live in component modules so this file stays as a
- * simple composition boundary for Vite.
+ * Composes the network adapters with the TanStack Router. The
+ * adapters are constructed once here so the entire SPA shares a
+ * single API client and websocket factory; tests render their own
+ * provider stack with fakes instead of using this component.
  */
+
+import { RouterProvider } from "@tanstack/react-router";
+import { HttpApiClient } from "./network/api";
+import { NetworkProvider } from "./network/context";
+import { WebSocketSessionSocket } from "./network/socket";
+import { router } from "./router";
+
+// Singleton adapters — the SPA only ever needs one of each.
+const api = new HttpApiClient();
+const socket = new WebSocketSessionSocket();
+
 export function App() {
-  return <GameView initialGame={createInitialGame()} />;
+  return (
+    <NetworkProvider value={{ api, socket }}>
+      <RouterProvider router={router} />
+    </NetworkProvider>
+  );
 }
