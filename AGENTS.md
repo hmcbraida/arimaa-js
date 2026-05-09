@@ -1,4 +1,4 @@
-This is an implementation of the board game arimaa.
+This is Arimaatic, an implementation of the board game Arimaa.
 See https://arimaa.com/arimaa/ for queries about the rules
 Use bun as the JS runtime.
 Checks:

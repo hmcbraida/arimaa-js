@@ -2,7 +2,7 @@
  * NATS-backed implementation of `EventBus`.
  *
  * Uses NATS core publish/subscribe with one subject per session,
- * `arimaa.sessions.<sessionId>`. The body of each message is the JSON
+ * `arimaatic.sessions.<sessionId>`. The body of each message is the JSON
  * encoding of the `SessionEvent` discriminated union.
  *
  * Why NATS rather than Postgres LISTEN/NOTIFY or Redis Pub/Sub:
@@ -32,7 +32,7 @@ import type { EventBus, SessionEventHandler, Unsubscribe } from "./bus";
  * to add a tenant or environment prefix we only change it here.
  */
 function subjectFor(sessionId: string): string {
-  return `arimaa.sessions.${sessionId}`;
+  return `arimaatic.sessions.${sessionId}`;
 }
 
 /**

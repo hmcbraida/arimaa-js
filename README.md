@@ -1,4 +1,6 @@
-# Arimaa
+# Arimaatic
+
+> ⚠ Heavy work in progress.
 
 A browser-based implementation of the [Arimaa](https://arimaa.com/arimaa/) board game with networked multiplayer, built with React, Fastify, PostgreSQL, and NATS.
 
@@ -68,7 +70,7 @@ The server runs migrations against the configured database on startup, then list
 ## Project structure
 
 ```
-arimaa-js/
+arimaatic/
 ├── src/
 │   ├── shared/
 │   │   └── schema.ts          # Zod schemas shared by server and client (API contract)

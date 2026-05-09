@@ -8,7 +8,10 @@ interface AboutModalProps {
 /** About dialog — project info and asset attribution. */
 export function AboutModal({ open, onClose }: AboutModalProps) {
   return (
-    <Modal open={open} onClose={onClose} title="hmcbraida's arimaa-js">
+    <Modal open={open} onClose={onClose} title="Arimaatic">
+      <div className="rounded border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-400">
+        ⚠ Heavy work in progress.
+      </div>
       <p className="text-tn-fg-muted">
         An open-source implementation of the{" "}
         <a

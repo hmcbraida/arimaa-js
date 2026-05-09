@@ -50,7 +50,7 @@ const storageDocumentSchema = z.object({
 });
 type StorageDocument = z.infer<typeof storageDocumentSchema>;
 
-const STORAGE_KEY = "arimaa.games";
+const STORAGE_KEY = "arimaatic.games";
 
 /**
  * Read the persisted document, or an empty default if nothing has

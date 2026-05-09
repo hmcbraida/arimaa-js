@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the design of the Arimaa networked-play system: the server, the persistence layer, the event bus, the API contract, and the frontend.
+This document describes the design of the Arimaatic networked-play system: the server, the persistence layer, the event bus, the API contract, and the frontend.
 
 ## High-level overview
 
