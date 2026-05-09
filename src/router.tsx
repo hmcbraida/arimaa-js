@@ -54,10 +54,13 @@ const routeTree = rootRoute.addChildren([
 ]);
 
 // `import.meta.env.BASE_URL` is injected by Vite from the `base` option in
-// vite.config.ts (e.g. "/arimaatic/"). Passing it here lets TanStack Router
-// strip the prefix before matching routes, so `/arimaatic/` matches `/` as
-// expected when the app is served from a sub-path.
-export const router = createRouter({ routeTree, basepath: import.meta.env.BASE_URL });
+// vite.config.ts ("/arimaatic/"). Passing it here lets TanStack Router strip
+// the prefix before matching routes, so `/arimaatic/offline` matches
+// `/offline` as expected when the app is served from a sub-path.
+export const router = createRouter({
+  routeTree,
+  basepath: import.meta.env.BASE_URL,
+});
 
 // Register the typed router globally so `useNavigate`, `useParams`,
 // and `<Link>` are fully type-safe. This is the canonical TanStack

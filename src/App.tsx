@@ -13,9 +13,12 @@ import { NetworkProvider } from "./network/context";
 import { WebSocketSessionSocket } from "./network/socket";
 import { router } from "./router";
 
-// Singleton adapters — the SPA only ever needs one of each.
-const api = new HttpApiClient();
-const socket = new WebSocketSessionSocket();
+// Strip the trailing slash from the Vite base path so both adapters can
+// append "/api/..." without producing a double-slash.  In production behind
+// nginx this resolves to "/arimaa"; in tests BASE_URL is "/".
+const apiBase = (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "");
+const api = new HttpApiClient(apiBase);
+const socket = new WebSocketSessionSocket(apiBase);
 
 export function App() {
   return (

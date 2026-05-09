@@ -100,7 +100,10 @@ export function ControllerPanel({
       <header className="flex flex-col gap-4">
         <div>
           <p className="mt-1 text-sm text-tn-fg-muted">
-            Current turn: <b>{sideLabel} {snapshot.moveNumber}</b>
+            Current turn:{" "}
+            <b>
+              {sideLabel} {snapshot.moveNumber}
+            </b>
           </p>
         </div>
         <div className="grid grid-cols-2 gap-3">

@@ -29,7 +29,9 @@ export function AppShell() {
     <main className="min-h-screen bg-tn-bg px-6 py-8 text-tn-fg">
       <div className="mx-auto flex max-w-7xl flex-col gap-8">
         <header className="flex items-center justify-between border-b border-tn-border pb-5">
-          <h1 className="text-3xl text-tn-fg">Arimaatic -- an Arimaa application</h1>
+          <h1 className="text-3xl text-tn-fg">
+            Arimaatic -- an Arimaa application
+          </h1>
           <button
             type="button"
             onClick={() => setAboutOpen(true)}

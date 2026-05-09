@@ -63,10 +63,12 @@ export interface ApiClient {
 /**
  * Production HTTP implementation backed by the browser `fetch`.
  *
- * The `baseUrl` defaults to an empty string so production builds —
- * which serve the SPA from the same origin as the API behind nginx —
- * issue same-origin requests. Local development overrides it to point
- * at the API server's port directly.
+ * `baseUrl` is the path prefix that comes before `/api/...` in every request.
+ * In production it is `"/arimaatic"` (derived from Vite's BASE_URL), which the
+ * outer reverse proxy maps to the container root before the request arrives.
+ * For local development pointing directly at the API server it can be a full
+ * origin such as `"http://localhost:3001"`.  The default empty string keeps
+ * the path as `/api/...` for tests and simple same-origin deployments.
  */
 export class HttpApiClient implements ApiClient {
   public constructor(private readonly baseUrl: string = "") {}

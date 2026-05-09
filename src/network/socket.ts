@@ -37,12 +37,20 @@ export interface SessionSocket {
 /**
  * Production implementation. Opens a real `WebSocket` per subscription.
  *
- * `baseUrl` is the HTTP origin (e.g. `http://api:3001`) — we derive the
- * `ws://` or `wss://` URL from it. The default of empty string means
- * "same origin as the page" which is the case behind nginx.
+ * `apiBase` is the prefix that comes before `/api/ws` in the final URL.
+ * Two forms are accepted:
+ *
+ *   - A path prefix such as `"/arimaatic"` (the production case when the app is
+ *     served from a sub-path): the WS URL is built from `window.location.origin`
+ *     plus `${apiBase}/api/ws`.
+ *   - A full HTTP origin such as `"http://api:3001"` (local dev pointing
+ *     directly at the API server): the origin is taken from the value and the
+ *     path is `/api/ws`.
+ *   - An empty string: same-origin `/api/ws` — the default for tests and
+ *     simple same-origin deployments.
  */
 export class WebSocketSessionSocket implements SessionSocket {
-  public constructor(private readonly httpBaseUrl: string = "") {}
+  public constructor(private readonly apiBase: string = "") {}
 
   subscribe(sessionId: string, handler: SocketEventHandler): SocketUnsubscribe {
     const wsUrl = this.deriveWsUrl(sessionId);
@@ -77,18 +85,29 @@ export class WebSocketSessionSocket implements SessionSocket {
   }
 
   /**
-   * Translate the HTTP base URL into a WS URL with the session id
-   * passed via query string.
+   * Build the WebSocket URL from `apiBase`.
    *
-   * If `httpBaseUrl` is empty we read `window.location.origin` so the
-   * SPA's deployed origin works regardless of port or protocol.
+   * When `apiBase` is an absolute HTTP URL (starts with "http"), derive
+   * the origin from it and use `/api/ws` as the path — this covers the
+   * local-dev case where the API runs on a separate port.
+   *
+   * Otherwise treat `apiBase` as a path prefix on the current origin
+   * (e.g. `"/arimaa"` → `wss://<origin>/arimaa/api/ws`). An empty
+   * string resolves to the same-origin `/api/ws`.
    */
   private deriveWsUrl(sessionId: string): string {
-    const base =
-      this.httpBaseUrl.length === 0 ? window.location.origin : this.httpBaseUrl;
-    const url = new URL(base);
+    let url: URL;
+    if (
+      this.apiBase.startsWith("http://") ||
+      this.apiBase.startsWith("https://")
+    ) {
+      url = new URL(this.apiBase);
+      url.pathname = "/api/ws";
+    } else {
+      url = new URL(window.location.origin);
+      url.pathname = `${this.apiBase}/api/ws`;
+    }
     url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-    url.pathname = "/api/ws";
     url.searchParams.set("sessionId", sessionId);
     return url.toString();
   }

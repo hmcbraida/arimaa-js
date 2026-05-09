@@ -34,7 +34,9 @@ FROM nginx:1.27-alpine AS runtime
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copy the static assets produced by the build stage. nginx serves
-# them out of `/usr/share/nginx/html` by default.
+# them out of `/usr/share/nginx/html` by default.  The outer reverse
+# proxy strips the public sub-path prefix before requests reach here,
+# so the container always sees paths starting at /.
 COPY --from=build /app/dist /usr/share/nginx/html
 
 EXPOSE 80
