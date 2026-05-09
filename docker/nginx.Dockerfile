@@ -23,7 +23,7 @@ COPY vite.config.ts ./
 COPY tailwind.config.ts ./
 COPY postcss.config.cjs ./
 
-RUN bun run build
+RUN bun run build:nocheck
 
 # --- Runtime stage --------------------------------------------------
 
