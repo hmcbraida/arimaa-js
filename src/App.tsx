@@ -13,10 +13,13 @@ import { NetworkProvider } from "./network/context";
 import { WebSocketSessionSocket } from "./network/socket";
 import { router } from "./router";
 
-// Strip the trailing slash from the Vite base path so both adapters can
-// append "/api/..." without producing a double-slash.  In production behind
-// nginx this resolves to "/arimaa"; in tests BASE_URL is "/".
-const apiBase = (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "");
+// When VITE_API_URL is set (e.g. `dev:docker`) it takes precedence so
+// requests go to the external Docker API instead of the local origin.
+// Without it we fall back to the Vite base path, stripping the trailing
+// slash so appending "/api/..." never produces a double-slash.
+const apiBase =
+  import.meta.env.VITE_API_URL ??
+  (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "");
 const api = new HttpApiClient(apiBase);
 const socket = new WebSocketSessionSocket(apiBase);
 
