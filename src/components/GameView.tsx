@@ -21,7 +21,7 @@ export function GameView({ initialGame }: GameViewProps = {}) {
     () => initialGame ?? ArimaaGame.withDefaultSetup(),
   );
   const [gameInstanceKey, setGameInstanceKey] = useState(0);
-  const [, setRevision] = useState(0);
+  const [revision, setRevision] = useState(0);
 
   /** Bumps the render revision after any in-place engine mutation. */
   const refreshFromMutableGame = useCallback(() => {
@@ -36,7 +36,7 @@ export function GameView({ initialGame }: GameViewProps = {}) {
    */
   const handleStep = useCallback(
     (step: MovementStep) => {
-      game.executeStep(step);
+      game.executeKnownLegalStep(step);
       refreshFromMutableGame();
     },
     [game, refreshFromMutableGame],
@@ -96,6 +96,7 @@ export function GameView({ initialGame }: GameViewProps = {}) {
       <Board
         key={gameInstanceKey}
         game={game}
+        revision={revision}
         onStep={handleStep}
         onUndoVisibleStep={handleUndoVisibleStep}
       />

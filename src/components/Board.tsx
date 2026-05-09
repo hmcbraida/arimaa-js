@@ -14,6 +14,13 @@ import { PieceToken } from "./PieceToken";
 /** Props for the interactive board super-component. */
 interface BoardProps {
   readonly game: ArimaaGame;
+  /**
+   * Revision counter from the parent — incremented after every in-place engine
+   * mutation. The board uses this as the memoization key for the legal-step
+   * list so that an expensive listVisibleLegalSteps() call is not triggered by
+   * internal state changes (selection, drag hints) that do not affect game state.
+   */
+  readonly revision: number;
   readonly onStep: (step: MovementStep) => void;
   readonly onUndoVisibleStep: () => void;
   /** When true, renders the board from silver's perspective (rank 1 at top, file h on left). */
@@ -37,6 +44,7 @@ function getPendingPull(step: MovementStep): PendingPull {
  */
 export function Board({
   game,
+  revision,
   onStep,
   onUndoVisibleStep,
   flipped = false,
@@ -46,7 +54,13 @@ export function Board({
     [],
   );
   const snapshot = game.getSnapshot();
-  const legalSteps = game.listVisibleLegalSteps();
+  // Memoised on revision so that selection or drag-hint changes (which do not
+  // alter game state) do not trigger the expensive legal-step computation.
+  const legalSteps = useMemo(
+    () => game.listVisibleLegalSteps(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [game, revision],
+  );
   const pendingPull =
     snapshot.pendingAction?.kind === "pull" ? snapshot.pendingAction : null;
   const selectedSteps = useMemo(

@@ -63,7 +63,7 @@ export function NetworkGameView({
   // square-selection state.
   const [engineKey, setEngineKey] = useState(0);
   // Bumped after in-place mutations so snapshot-based children re-read.
-  const [, setRevision] = useState(0);
+  const [revision, setRevision] = useState(0);
   const refresh = useCallback(() => setRevision((r) => r + 1), []);
 
   const [submitting, setSubmitting] = useState(false);
@@ -145,7 +145,7 @@ export function NetworkGameView({
   const onStep = useCallback(
     (step: MovementStep) => {
       if (!myTurn) return;
-      game.executeStep(step);
+      game.executeKnownLegalStep(step);
       refresh();
     },
     [game, myTurn, refresh],
@@ -312,6 +312,7 @@ export function NetworkGameView({
           // state when the engine is replaced from a server update.
           key={engineKey}
           game={game}
+          revision={revision}
           flipped={flipped}
           // Spectators and the off-turn player still see legal-move
           // dots highlighted, but their clicks are dropped because

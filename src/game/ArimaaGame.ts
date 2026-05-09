@@ -44,6 +44,7 @@ import {
   Side,
   type Square,
   type StepRole,
+  TRAP_SQUARES,
 } from "./types";
 
 /** Options for listing individual legal steps. */
@@ -77,6 +78,25 @@ interface StoredGameState {
 interface ApplyOptions {
   readonly record: boolean;
   readonly evaluateStatus?: boolean;
+}
+
+/**
+ * Minimal undo record for reversing a speculative in-place movement step.
+ *
+ * Only the three fields mutated by applyMovementStepInPlace are captured here.
+ * History, move log, positionCounts, and record IDs are never touched by
+ * search steps, so they need no entry in this snapshot.
+ */
+interface SearchUndo {
+  readonly piece: Piece;
+  readonly from: Square;
+  readonly to: Square;
+  readonly prevPendingAction: PendingAction | null;
+  readonly prevStepsTaken: number;
+  readonly captures: ReadonlyArray<{
+    readonly piece: Piece;
+    readonly square: Square;
+  }>;
 }
 
 /** Hidden step singleton used whenever a turn is committed. */
@@ -287,6 +307,26 @@ export class ArimaaGame {
     }
 
     return this.applyMovementStep(legalStep, { record: true });
+  }
+
+  /**
+   * Executes a step that was already returned by listLegalSteps or
+   * listVisibleLegalSteps for the current engine state.
+   *
+   * Skips the re-validation in executeStep because the step is known to be
+   * current — use this from UI paths where the step comes directly from a
+   * freshly computed legal-step list and no intervening mutation has occurred.
+   * Use executeStep when you cannot guarantee freshness (e.g. replayed
+   * transcripts, tests constructing synthetic steps).
+   */
+  public executeKnownLegalStep(step: LegalStep): AppliedStepRecord {
+    this.undoStack.push(this.captureState());
+
+    if (step.kind === "finish-turn") {
+      return this.applyFinishTurnStep({ record: true, evaluateStatus: true });
+    }
+
+    return this.applyMovementStep(step, { record: true });
   }
 
   /**
@@ -867,15 +907,117 @@ export class ArimaaGame {
   }
 
   /**
+   * Applies a movement step directly onto this engine, runs fn, then
+   * unconditionally reverses every mutation — even if fn throws.
+   *
+   * The try/finally makes it structurally impossible to leave the engine in a
+   * corrupt intermediate state: callers cannot forget the undo, and exceptions
+   * inside fn are propagated after restoration rather than silently swallowed.
+   *
+   * Re-entrancy note: hasLegalCompletion calls this recursively, and
+   * evaluateStatusAfterTurn (called mid-applyFinishTurnStep) also calls
+   * hasLegalCompletion. Because every apply is matched by a corresponding undo
+   * before returning, the nesting is safe — the board is always restored to the
+   * state the outer caller expects.
+   */
+  private withSearchStep<T>(step: MovementStep, fn: () => T): T {
+    const undo = this.applyMovementStepInPlace(step);
+    try {
+      return fn();
+    } finally {
+      this.undoMovementStepInPlace(undo);
+    }
+  }
+
+  /**
+   * Mutates the board and step-count fields to reflect a movement step without
+   * creating any history records, clones, or notation strings.
+   *
+   * All validation (piece identity check) is performed before the first
+   * mutation so that a throw leaves the board unchanged and no undo is needed.
+   * After the first mutation the method no longer throws; callers can rely on
+   * the returned SearchUndo being complete and valid.
+   */
+  private applyMovementStepInPlace(step: MovementStep): SearchUndo {
+    const piece = getSquare(this.board, step.from);
+
+    if (!samePiece(piece, step.piece)) {
+      throw new Error(
+        `Search step mismatch: expected ${step.notation} to start from ${formatSquare(step.from)}`,
+      );
+    }
+
+    const prevPendingAction = this.pendingAction;
+    const prevStepsTaken = this.stepsTakenThisTurn;
+
+    // Move piece; no clone needed — the piece object is treated as immutable.
+    setSquare(this.board, step.from, null);
+    setSquare(this.board, step.to, piece);
+
+    // Capture references before removing pieces so undo can put them back.
+    // pendingAction is shared by reference: step objects are never mutated.
+    const captures = this.resolveTrapCapturesInPlace();
+    this.pendingAction = step.pendingAction;
+    this.stepsTakenThisTurn += 1;
+
+    return { piece, from: step.from, to: step.to, prevPendingAction, prevStepsTaken, captures };
+  }
+
+  /**
+   * Reverses every mutation made by applyMovementStepInPlace.
+   *
+   * Capture restoration always precedes piece restoration. If the moved piece
+   * itself landed on a trap and was captured, the captures loop puts it back
+   * on step.to, and the subsequent two setSquare calls then move it to step.from
+   * and clear step.to — arriving at the correct pre-move state in all cases.
+   */
+  private undoMovementStepInPlace(undo: SearchUndo): void {
+    this.stepsTakenThisTurn = undo.prevStepsTaken;
+    this.pendingAction = undo.prevPendingAction;
+
+    for (const capture of undo.captures) {
+      setSquare(this.board, capture.square, capture.piece);
+    }
+
+    setSquare(this.board, undo.from, undo.piece);
+    setSquare(this.board, undo.to, null);
+  }
+
+  /**
+   * Identifies and removes any unsupported pieces on trap squares.
+   *
+   * Returns plain piece/square pairs (no clones, no notation) so the caller
+   * can restore them cheaply during undo. Only called from the in-place search
+   * path; the recording path uses resolveTrapCaptures instead.
+   */
+  private resolveTrapCapturesInPlace(): Array<{
+    piece: Piece;
+    square: Square;
+  }> {
+    const captures: Array<{ piece: Piece; square: Square }> = [];
+
+    for (const trap of TRAP_SQUARES) {
+      const piece = getSquare(this.board, trap);
+
+      if (piece === null || this.hasAdjacentFriendly(trap, piece.side)) {
+        continue;
+      }
+
+      captures.push({ piece, square: trap });
+      setSquare(this.board, trap, null);
+    }
+
+    return captures;
+  }
+
+  /**
    * Checks whether executing a step leaves at least one legal turn completion.
    *
    * Public legal-step listing uses this to avoid exposing steps that would make
    * the player unable to finish a legal move.
    */
   private stepHasLegalCompletion(step: MovementStep): boolean {
-    const game = this.forkForSearch();
-    game.applyMovementStep(step, { record: false });
-    return game.hasLegalCompletion(false);
+    return this.withSearchStep(step, () => this.hasLegalCompletion(false));
   }
 
   /**
@@ -894,11 +1036,10 @@ export class ArimaaGame {
       return false;
     }
 
+    // generateMovementSteps returns an eagerly evaluated array, so mutating
+    // the board in withSearchStep during iteration is safe.
     for (const step of this.generateMovementSteps()) {
-      const game = this.forkForSearch();
-      game.applyMovementStep(step, { record: false });
-
-      if (game.hasLegalCompletion(ignoreRepetition)) {
+      if (this.withSearchStep(step, () => this.hasLegalCompletion(ignoreRepetition))) {
         return true;
       }
     }
@@ -1020,12 +1161,7 @@ export class ArimaaGame {
   private resolveTrapCaptures(): CaptureRecord[] {
     const captures: CaptureRecord[] = [];
 
-    for (const trap of [
-      parseSquare("c3"),
-      parseSquare("f3"),
-      parseSquare("c6"),
-      parseSquare("f6"),
-    ]) {
+    for (const trap of TRAP_SQUARES) {
       const piece = getSquare(this.board, trap);
 
       if (piece === null || this.hasAdjacentFriendly(trap, piece.side)) {
