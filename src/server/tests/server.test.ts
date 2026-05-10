@@ -37,10 +37,10 @@ import {
   getSessionResponseSchema,
   listUserSessionsResponseSchema,
   loginResponseSchema,
+  protectedUserProfileSchema,
   refreshAccessTokenResponseSchema,
   sessionEventSchema,
   submitMoveResponseSchema,
-  protectedUserProfileSchema,
 } from "../../shared/schema";
 import { createAuthTokenSigner, secretFromString } from "../auth/tokens";
 import { RecordingEmailSender } from "../email/sender";
@@ -81,7 +81,9 @@ function buildTestServer(options?: { now?: () => Date }) {
  * Used whenever a test needs to pass the refresh-token cookie back to
  * a subsequent inject call.
  */
-function extractRtCookie(response: { headers: Record<string, unknown> }): string {
+function extractRtCookie(response: {
+  headers: Record<string, unknown>;
+}): string {
   const setCookie = response.headers["set-cookie"];
   const cookies = Array.isArray(setCookie)
     ? (setCookie as string[])

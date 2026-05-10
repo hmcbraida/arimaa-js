@@ -25,8 +25,8 @@ import {
   createUserResponseSchema,
   emptyResponseSchema,
   loginResponseSchema,
-  refreshAccessTokenResponseSchema,
   protectedUserProfileSchema,
+  refreshAccessTokenResponseSchema,
 } from "../shared/schema";
 import { parseOrThrow } from "./api";
 
@@ -35,7 +35,7 @@ import { parseOrThrow } from "./api";
  * corresponds to one HTTP call.
  *
  * `getProfile` and `deleteAccount` take an explicit `accessToken`
- * argument so the client itself stays stateless — token retention
+ * argument so the client itself stays stateless -- token retention
  * lives in the auth context.
  */
 export interface AuthApiClient {
@@ -47,7 +47,7 @@ export interface AuthApiClient {
 
   /**
    * Exchange the `rt` cookie for an access token. The cookie is sent
-   * automatically by the browser — no token argument needed.
+   * automatically by the browser -- no token argument needed.
    */
   refreshAccessToken(): Promise<RefreshAccessTokenResponse>;
 
@@ -65,7 +65,7 @@ export interface AuthApiClient {
 
   /**
    * Trigger or re-trigger a verification email. Authenticated via the
-   * `rt` cookie — an unactivated user has a cookie but no access token.
+   * `rt` cookie -- an unactivated user has a cookie but no access token.
    */
   resendVerificationEmail(): Promise<EmptyResponse>;
 
