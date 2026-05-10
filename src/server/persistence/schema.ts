@@ -286,6 +286,12 @@ export const sessions = pgTable("sessions", {
    * The eight-digit accept code shared with the invitee. Cleared the
    * moment the code is redeemed -- that is how we encode "single-use"
    * without scheduling a cleanup job.
+   *
+   * Stored as plaintext rather than a hash. The consequence of a
+   * leaked accept code is that an attacker could join a game
+   * invitation meant for someone else -- annoying for that user, but
+   * not a security breach. Hashing is reserved for secrets whose
+   * exposure would cause real harm (passwords, refresh tokens, etc.).
    */
   acceptToken: text("accept_token"),
 

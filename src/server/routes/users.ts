@@ -37,20 +37,8 @@ import {
 } from "../auth/tokens";
 import { renderEmailVerification } from "../email/templates";
 import { UserUniquenessError } from "../persistence/store";
+import { RT_COOKIE, rtCookieOptions } from "./cookies";
 import type { RouteDeps } from "./types";
-
-/** Cookie name shared with the auth-route module. */
-const RT_COOKIE = "rt";
-
-function rtCookieOptions(secureCookies: boolean, expiresAt: Date) {
-  return {
-    httpOnly: true,
-    secure: secureCookies,
-    sameSite: "lax" as const,
-    path: "/",
-    expires: expiresAt,
-  };
-}
 
 /**
  * Build the verification URL embedded in the email body. We assume
@@ -99,7 +87,7 @@ export function registerUserRoutes(
   const typed = app.withTypeProvider<ZodTypeProvider>();
 
   /* ----------------------------------------------------------------- */
-  /* POST /api/users — create an account                                */
+  /* POST /api/users -- create an account                                */
   /* ----------------------------------------------------------------- */
   typed.post(
     "/api/users",
@@ -127,7 +115,7 @@ export function registerUserRoutes(
       let user: Awaited<ReturnType<typeof deps.store.users.createUser>>;
       try {
         user = await deps.store.users.createUser({
-          username,
+          username: username.toLowerCase(),
           passwordHash,
           emailAddress: emailAddress.toLowerCase(),
         });
@@ -169,7 +157,7 @@ export function registerUserRoutes(
   );
 
   /* ----------------------------------------------------------------- */
-  /* GET /api/users/me — authenticated profile                          */
+  /* GET /api/users/me -- authenticated profile                          */
   /* ----------------------------------------------------------------- */
   typed.get(
     "/api/users/me",
@@ -191,7 +179,7 @@ export function registerUserRoutes(
   );
 
   /* ----------------------------------------------------------------- */
-  /* DELETE /api/users/me — hard-delete the account                     */
+  /* DELETE /api/users/me -- hard-delete the account                     */
   /* ----------------------------------------------------------------- */
   typed.delete(
     "/api/users/me",
@@ -217,7 +205,7 @@ export function registerUserRoutes(
   );
 
   /* ----------------------------------------------------------------- */
-  /* POST /api/users/me/email/verification — resend                     */
+  /* POST /api/users/me/email/verification -- resend                     */
   /* ----------------------------------------------------------------- */
   /**
    * Authenticated via the *refresh token* (in the body) rather than
@@ -288,7 +276,7 @@ export function registerUserRoutes(
   );
 
   /* ----------------------------------------------------------------- */
-  /* PUT /api/users/me/password — change password                       */
+  /* PUT /api/users/me/password -- change password                       */
   /* ----------------------------------------------------------------- */
   typed.put(
     "/api/users/me/password",

@@ -39,12 +39,12 @@ export type AuthState =
  * Public actions exposed by the provider.
  *
  * `accessToken()` returns the currently-cached access token, or null
- * if none is available — the games tab and network game view call it
+ * if none is available -- the games tab and network game view call it
  * when assembling outgoing requests.
  *
  * `signIn` / `register` set `state` to `authenticated` (or `pending`)
  * synchronously after the network round-trip resolves. `cancelSignIn`
- * is the user-initiated abort from the login-pending screen — it
+ * is the user-initiated abort from the login-pending screen -- it
  * clears the persisted refresh token and returns to the anonymous
  * state.
  */
@@ -74,7 +74,7 @@ export interface AuthContextValue {
    * registration) so the caller can navigate immediately.
    */
   register(args: {
-    username?: string;
+    username: string;
     emailAddress: string;
     password: string;
   }): Promise<AuthState>;

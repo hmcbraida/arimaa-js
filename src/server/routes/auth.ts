@@ -33,25 +33,8 @@ import {
 } from "../auth/issue";
 import { verifyPassword } from "../auth/passwords";
 import { hashToken } from "../auth/tokens";
+import { RT_COOKIE, rtCookieOptions } from "./cookies";
 import type { RouteDeps } from "./types";
-
-/** Name of the httpOnly cookie that carries the long-lived refresh token. */
-const RT_COOKIE = "rt";
-
-/**
- * Cookie options shared by every Set-Cookie call that writes the
- * refresh token. The `expires` field is set per-call since it is
- * token-specific.
- */
-function rtCookieOptions(secureCookies: boolean, expiresAt: Date) {
-  return {
-    httpOnly: true,
-    secure: secureCookies,
-    sameSite: "lax" as const,
-    path: "/",
-    expires: expiresAt,
-  };
-}
 
 export function registerAuthRoutes(
   app: FastifyInstance,
@@ -60,7 +43,7 @@ export function registerAuthRoutes(
   const typed = app.withTypeProvider<ZodTypeProvider>();
 
   /* ----------------------------------------------------------------- */
-  /* POST /api/auth/login-sessions — login                              */
+  /* POST /api/auth/login-sessions -- login                              */
   /* ----------------------------------------------------------------- */
   typed.post(
     "/api/auth/login-sessions",
@@ -135,6 +118,12 @@ export function registerAuthRoutes(
   /* ----------------------------------------------------------------- */
   /* POST /api/auth/login-sessions/current/refresh-tokens               */
   /* ----------------------------------------------------------------- */
+  /**
+   * No rate-limit is applied here. The refresh token is 32 bytes of
+   * cryptographic randomness (256-bit entropy), so guessing a valid
+   * cookie value is computationally infeasible -- unlike the login
+   * endpoint, there is no low-entropy secret to brute-force.
+   */
   typed.post(
     "/api/auth/login-sessions/current/refresh-tokens",
     {
@@ -156,7 +145,7 @@ export function registerAuthRoutes(
         now,
       );
       if (tokenRow === null) {
-        // Bad/expired/revoked token — collapse all three into one
+        // Bad/expired/revoked token -- collapse all three into one
         // response. We do not include a user profile because there
         // is nothing trustworthy to return.
         return { ok: false as const, reason: "invalid" as const, user: null };
@@ -201,7 +190,7 @@ export function registerAuthRoutes(
   );
 
   /* ----------------------------------------------------------------- */
-  /* DELETE /api/auth/login-sessions/current — logout                   */
+  /* DELETE /api/auth/login-sessions/current -- logout                   */
   /* ----------------------------------------------------------------- */
   /**
    * The body carries the refresh token to revoke. Logout is
@@ -232,7 +221,7 @@ export function registerAuthRoutes(
         }
       }
       // Clear the cookie regardless of whether the token was valid.
-      // Logout is idempotent — clicking it twice should always succeed.
+      // Logout is idempotent -- clicking it twice should always succeed.
       reply.clearCookie(RT_COOKIE, { path: "/" });
       return {};
     },
