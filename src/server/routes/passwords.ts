@@ -57,6 +57,14 @@ export function registerPasswordRoutes(
   typed.post(
     "/api/passwords/resets",
     {
+      config: {
+        /**
+         * 5 requests per 15 minutes per IP. Prevents an attacker from
+         * flooding a victim's inbox or probing which addresses have
+         * accounts by timing the response variance across many requests.
+         */
+        rateLimit: { max: 5, timeWindow: 15 * 60 * 1000 },
+      },
       schema: {
         body: requestPasswordResetSchema,
         response: {

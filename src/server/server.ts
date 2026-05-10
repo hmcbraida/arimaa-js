@@ -15,6 +15,7 @@
 
 import cookiePlugin from "@fastify/cookie";
 import corsPlugin from "@fastify/cors";
+import rateLimitPlugin from "@fastify/rate-limit";
 import websocketPlugin from "@fastify/websocket";
 import Fastify, { type FastifyInstance } from "fastify";
 import {
@@ -84,6 +85,13 @@ export function buildServer(deps: ServerDependencies): FastifyInstance {
   // `request.cookies` and `reply.setCookie` are available.
   app.register(cookiePlugin);
   app.register(websocketPlugin);
+  /**
+   * Rate-limiting plugin. Registered with `global: false` so only the
+   * routes that explicitly opt in (via `config.rateLimit`) are capped.
+   * Limits are intentionally conservative: auth endpoints are the
+   * primary target for brute-force and enumeration attacks.
+   */
+  app.register(rateLimitPlugin, { global: false });
 
   /**
    * Convert validation / auth / generic errors to a uniform response

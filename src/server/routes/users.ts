@@ -113,6 +113,14 @@ export function registerUserRoutes(
   typed.post(
     "/api/users",
     {
+      config: {
+        /**
+         * 5 registrations per hour per IP. A single legitimate user
+         * never needs more than one; this cap deters automated account
+         * factories without affecting any real user.
+         */
+        rateLimit: { max: 5, timeWindow: 60 * 60 * 1000 },
+      },
       schema: {
         body: createUserRequestSchema,
         response: {

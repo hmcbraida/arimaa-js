@@ -65,6 +65,14 @@ export function registerAuthRoutes(
   typed.post(
     "/api/auth/login-sessions",
     {
+      config: {
+        /**
+         * 10 attempts per minute per IP. Generous enough for a
+         * legitimate user who misremembers their password, but low
+         * enough to make online brute-force infeasible.
+         */
+        rateLimit: { max: 10, timeWindow: "1 minute" },
+      },
       schema: {
         body: loginRequestSchema,
         response: {
