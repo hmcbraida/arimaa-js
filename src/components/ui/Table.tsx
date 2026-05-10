@@ -14,7 +14,7 @@ import type { ReactNode } from "react";
  * Description of a single column.
  *
  * `render` is required (rather than just naming a key) because a
- * column often presents derived data — e.g. converting an ISO date
+ * column often presents derived data -- e.g. converting an ISO date
  * into a human-friendly relative time.
  */
 export interface TableColumn<TRow> {

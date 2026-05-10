@@ -1,23 +1,27 @@
 /**
- * Games tab — the default view of the SPA.
+ * Games tab -- the default view of the SPA.
  *
- * Shows a paginated table of every session this browser has been
- * involved in (player or spectator). Above the table sits a pair of
- * buttons that open the new-game and join-game modals. Clicking a
- * row navigates to that session.
+ * Two visual modes:
  *
- * The list itself is read from localStorage on mount; the per-row
- * status (whose turn it is, completion) is hydrated from the API so
- * users can scan a stale list and still see fresh status text. The
- * hydration runs once per page change so we never call the API for
- * games not currently visible.
+ *   - **Anonymous**     prompts the user to sign in. The whole table
+ *                       is hidden because online games are gated to
+ *                       authenticated users per spec; anonymous users
+ *                       can still spectate via a `/sessions/:id` URL.
+ *   - **Authenticated** shows the user's paginated game list fetched
+ *                       from `GET /api/users/me/sessions`. Click a
+ *                       row to open the game.
+ *
+ * Pagination is keyset-based using the cursor returned by the server.
+ * We keep the "load more" semantics simple: a single forward cursor
+ * with no back-button. If users frequently want to revisit older
+ * pages we can add a stack of cursors here later.
  */
 
-import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { type StoredGame, listStoredGames } from "../../network/storage";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useAuth } from "../../auth/useAuth";
 import { useNetwork } from "../../network/useNetwork";
-import type { SessionSnapshot } from "../../shared/schema";
+import type { SessionListEntry } from "../../shared/schema";
 import { Button } from "../ui/Button";
 import { Table } from "../ui/Table";
 import { JoinGameModal } from "./JoinGameModal";
@@ -26,113 +30,134 @@ import { NewGameModal } from "./NewGameModal";
 const PAGE_SIZE = 10;
 
 /**
- * Format a session status for the table cell.
+ * Format a list-entry status for the table cell.
  *
- * The wire-format status is short ("waiting" / "gold" / "silver" /
- * "completed") so we only need to dress it up for display.
+ * `whoseTurn` is computed by the server from the viewer's perspective,
+ * so we use it directly rather than re-deriving from `sideToMove`.
  */
-function describeStatus(snapshot: SessionSnapshot | undefined): string {
-  if (snapshot === undefined) return "Loading...";
-  switch (snapshot.status) {
+function describeStatus(entry: SessionListEntry): string {
+  switch (entry.status) {
     case "waiting":
       return "Waiting for opponent";
-    case "gold":
-      return "Gold's turn";
-    case "silver":
-      return "Silver's turn";
     case "completed":
-      return snapshot.winner !== null
-        ? `${snapshot.winner === "gold" ? "Gold" : "Silver"} won (${snapshot.reason ?? "unknown"})`
+      return entry.winner !== null
+        ? `${entry.winner === "gold" ? "Gold" : "Silver"} won (${entry.reason ?? "unknown"})`
         : "Completed";
+    case "gold":
+    case "silver":
+      return entry.whoseTurn === "you" ? "Your turn" : "Opponent's turn";
   }
 }
 
 export function GamesTab() {
-  const { api } = useNetwork();
+  const { state, accessToken } = useAuth();
+  const { gameApi } = useNetwork();
   const navigate = useNavigate();
 
-  // We mirror the localStorage list into component state so a row added
-  // by a modal triggers a re-render. We re-read on mount and after
-  // either modal closes successfully.
-  const [games, setGames] = useState<StoredGame[]>(() => listStoredGames());
-  const [page, setPage] = useState(0);
-  const [snapshots, setSnapshots] = useState<Record<string, SessionSnapshot>>(
-    {},
-  );
+  const [entries, setEntries] = useState<SessionListEntry[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [newOpen, setNewOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
 
-  // Slice the visible page out of the full list. The full list is
-  // already sorted newest-first by `listStoredGames`.
-  const visible = useMemo(
-    () => games.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
-    [games, page],
-  );
-  const totalPages = Math.max(1, Math.ceil(games.length / PAGE_SIZE));
+  const isAuthenticated = state.kind === "authenticated";
 
   /**
-   * Hydrate snapshots for every visible row whenever the page changes.
-   *
-   * We fire requests in parallel and ignore individual failures (a
-   * deleted session, for instance). A best-effort approach is the
-   * right call here — the table is informational, not critical.
+   * Fetch a page of games. `replace` resets the list (used after a
+   * modal succeeds); otherwise we append.
    */
+  const loadPage = useCallback(
+    async (cursor: string | null, replace: boolean) => {
+      const at = accessToken();
+      if (at === null) return;
+      setLoading(true);
+      setError(null);
+      try {
+        const page = await gameApi.listMySessions({
+          accessToken: at,
+          query: { limit: PAGE_SIZE, cursor: cursor ?? undefined },
+        });
+        setEntries((prev) =>
+          replace ? page.sessions.slice() : [...prev, ...page.sessions],
+        );
+        setNextCursor(page.nextCursor);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load games");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [accessToken, gameApi],
+  );
+
+  // Initial load when we transition into authenticated state.
   useEffect(() => {
-    let cancelled = false;
-    void Promise.all(
-      visible.map(async (game) => {
-        try {
-          const snap = await api.getSession(game.sessionId);
-          if (!cancelled) {
-            setSnapshots((prev) => ({ ...prev, [game.sessionId]: snap }));
-          }
-        } catch {
-          // Ignore — we render a fallback in describeStatus.
-        }
-      }),
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [visible, api]);
+    if (!isAuthenticated) {
+      setEntries([]);
+      setNextCursor(null);
+      return;
+    }
+    void loadPage(null, true);
+  }, [isAuthenticated, loadPage]);
 
-  const refreshList = () => {
-    setGames(listStoredGames());
-    setPage(0);
-  };
+  const refreshList = useCallback(() => loadPage(null, true), [loadPage]);
 
-  // Memoise the column descriptors so React doesn't re-create the
-  // array on every render — a tiny detail but it keeps the table
-  // pure-render-friendly.
   const columns = useMemo(
     () => [
       {
         id: "side",
         header: "You",
-        render: (row: StoredGame) =>
-          row.role === "player" && row.side !== null
-            ? row.side[0].toUpperCase() + row.side.slice(1)
-            : "Spectator",
+        render: (row: SessionListEntry) =>
+          row.yourSide[0].toUpperCase() + row.yourSide.slice(1),
       },
       {
         id: "status",
         header: "Status",
-        render: (row: StoredGame) => describeStatus(snapshots[row.sessionId]),
+        render: (row: SessionListEntry) => describeStatus(row),
+      },
+      {
+        id: "opponent",
+        header: "Opponent",
+        render: (row: SessionListEntry) => {
+          const opponentSide = row.yourSide === "gold" ? "silver" : "gold";
+          return row.participants[opponentSide]?.username ?? "—";
+        },
       },
       {
         id: "added",
-        header: "Added",
-        render: (row: StoredGame) => new Date(row.addedAt).toLocaleString(),
+        header: "Created",
+        render: (row: SessionListEntry) =>
+          new Date(row.createdAt).toLocaleString(),
       },
       {
         id: "id",
         header: "Session",
         className: "font-mono text-xs text-tn-comment",
-        render: (row: StoredGame) => row.sessionId.slice(0, 8),
+        render: (row: SessionListEntry) => row.id.slice(0, 8),
       },
     ],
-    [snapshots],
+    [],
   );
+
+  // Anonymous-mode prompt.
+  if (!isAuthenticated) {
+    return (
+      <section className="flex flex-col gap-4">
+        <div className="border border-tn-border bg-tn-panel p-6 text-sm text-tn-fg">
+          <p>Sign in to play online games.</p>
+        </div>
+        <div className="flex gap-2">
+          <Link
+            to="/login"
+            className="flex min-h-[44px] items-center justify-center bg-tn-blue px-4 py-2 text-sm text-tn-bg"
+          >
+            Sign in
+          </Link>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="flex flex-col gap-4">
@@ -143,60 +168,55 @@ export function GamesTab() {
         <Button onClick={() => setJoinOpen(true)}>Join a game</Button>
       </div>
 
+      {error !== null && (
+        <p
+          role="alert"
+          className="border border-tn-red/50 bg-tn-red/10 px-3 py-2 text-sm text-tn-red"
+        >
+          {error}
+        </p>
+      )}
+
       <Table
         columns={columns}
-        rows={visible}
-        getRowId={(row) => row.sessionId}
+        rows={entries}
+        getRowId={(row) => row.id}
         onRowClick={(row) =>
-          void navigate({ to: "/sessions/$id", params: { id: row.sessionId } })
+          void navigate({ to: "/sessions/$id", params: { id: row.id } })
         }
-        emptyMessage="You have not joined any games yet. Start a new one above, or join with an 8-digit code."
+        emptyMessage={
+          loading
+            ? "Loading..."
+            : "You have not joined any games yet. Start a new one above, or join with an 8-digit code."
+        }
       />
 
-      {games.length > PAGE_SIZE && (
-        <nav
-          aria-label="Pagination"
-          className="flex items-center justify-between text-sm text-tn-fg-muted"
-        >
+      {nextCursor !== null && (
+        <div className="flex justify-center">
           <Button
-            onClick={() => setPage((p) => Math.max(0, p - 1))}
-            disabled={page === 0}
+            onClick={() => void loadPage(nextCursor, false)}
+            disabled={loading}
           >
-            Previous
+            {loading ? "Loading..." : "Load more"}
           </Button>
-          <span>
-            Page {page + 1} of {totalPages}
-          </span>
-          <Button
-            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-            disabled={page >= totalPages - 1}
-          >
-            Next
-          </Button>
-        </nav>
+        </div>
       )}
 
       <NewGameModal
         open={newOpen}
-        onClose={() => {
-          setNewOpen(false);
-          refreshList();
-        }}
+        onClose={() => setNewOpen(false)}
         onCreated={(id) => {
           setNewOpen(false);
-          refreshList();
+          void refreshList();
           void navigate({ to: "/sessions/$id", params: { id } });
         }}
       />
       <JoinGameModal
         open={joinOpen}
-        onClose={() => {
-          setJoinOpen(false);
-          refreshList();
-        }}
+        onClose={() => setJoinOpen(false)}
         onJoined={(id) => {
           setJoinOpen(false);
-          refreshList();
+          void refreshList();
           void navigate({ to: "/sessions/$id", params: { id } });
         }}
       />

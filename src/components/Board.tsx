@@ -15,7 +15,7 @@ import { PieceToken } from "./PieceToken";
 interface BoardProps {
   readonly game: ArimaaGame;
   /**
-   * Revision counter from the parent — incremented after every in-place engine
+   * Revision counter from the parent -- incremented after every in-place engine
    * mutation. The board uses this as the memoization key for the legal-step
    * list so that an expensive listVisibleLegalSteps() call is not triggered by
    * internal state changes (selection, drag hints) that do not affect game state.

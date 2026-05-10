@@ -48,8 +48,8 @@ The server runs migrations against the configured database on startup, then list
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `DATABASE_URL` | Yes | — | `postgres://user:pass@host:port/db` |
-| `NATS_URL` | Yes | — | `nats://host:4222` |
+| `DATABASE_URL` | Yes | -- | `postgres://user:pass@host:port/db` |
+| `NATS_URL` | Yes | -- | `nats://host:4222` |
 | `PORT` | No | `3001` | HTTP / WS listen port |
 | `HOST` | No | `127.0.0.1` | Bind address (`0.0.0.0` in Docker) |
 
@@ -77,7 +77,7 @@ arimaatic/
 │   ├── game/                  # Pure-TypeScript Arimaa engine (rules, board, transcript)
 │   ├── server/
 │   │   ├── index.ts           # Production entrypoint (env, migrations, listen)
-│   │   ├── server.ts          # buildServer() factory — Fastify routes + plugins
+│   │   ├── server.ts          # buildServer() factory -- Fastify routes + plugins
 │   │   ├── domain.ts          # Business logic: transcript replay, move validation, snapshots
 │   │   ├── tokens.ts          # Cryptographic token generation and hashing
 │   │   ├── events/
@@ -94,10 +94,10 @@ arimaatic/
 │   │   └── tests/
 │   │       └── server.test.ts # Jest integration tests (in-memory fakes, no infra)
 │   ├── network/
-│   │   ├── api.ts             # HttpApiClient — typed fetch wrapper for all API routes
-│   │   ├── socket.ts          # WebSocketSessionSocket — session event stream client
+│   │   ├── api.ts             # HttpApiClient -- typed fetch wrapper for all API routes
+│   │   ├── socket.ts          # WebSocketSessionSocket -- session event stream client
 │   │   ├── storage.ts         # localStorage helpers for persisting joined-game credentials
-│   │   ├── contextValue.ts    # React context object (no JSX — satisfies react-refresh rule)
+│   │   ├── contextValue.ts    # React context object (no JSX -- satisfies react-refresh rule)
 │   │   ├── context.tsx        # NetworkProvider component
 │   │   └── useNetwork.ts      # useNetwork() hook
 │   └── components/
@@ -128,11 +128,11 @@ See [`docs/architecture.md`](docs/architecture.md) for the full API contract. Br
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| `POST` | `/api/sessions?side=gold\|silver` | — | Create a session; returns `secretToken` + 8-digit `acceptToken` |
-| `GET` | `/api/sessions/:id` | — | Public snapshot of any session |
-| `POST` | `/api/session-accept` | — | Redeem an accept code; returns the joining player's `secretToken` |
+| `POST` | `/api/sessions?side=gold\|silver` | -- | Create a session; returns `secretToken` + 8-digit `acceptToken` |
+| `GET` | `/api/sessions/:id` | -- | Public snapshot of any session |
+| `POST` | `/api/session-accept` | -- | Redeem an accept code; returns the joining player's `secretToken` |
 | `POST` | `/api/sessions/:id/moves` | Bearer `secretToken` | Submit a move turn |
-| `GET` | `/api/ws?sessionId=:id` | — | WebSocket session event stream (upgrade) |
+| `GET` | `/api/ws?sessionId=:id` | -- | WebSocket session event stream (upgrade) |
 
 ## Architecture
 

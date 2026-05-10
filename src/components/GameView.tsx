@@ -30,9 +30,6 @@ export function GameView({ initialGame }: GameViewProps = {}) {
 
   /**
    * Executes a visible movement without committing the turn.
-   *
-   * The player must explicitly submit the turn, even after using all four
-   * movement steps, so the controller remains the single turn-boundary control.
    */
   const handleStep = useCallback(
     (step: MovementStep) => {
@@ -44,9 +41,6 @@ export function GameView({ initialGame }: GameViewProps = {}) {
 
   /**
    * Commits the current move through the engine's hidden finish-turn step.
-   *
-   * The hidden record remains internal; users see only the completed move and
-   * its visible component movement steps.
    */
   const handleSubmitTurn = useCallback(() => {
     if (game.canFinishTurn()) {

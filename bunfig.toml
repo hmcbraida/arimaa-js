@@ -1,0 +1,9 @@
+# Bun configuration.
+#
+# `[test]` section: `preload` is a list of files Bun loads before any
+# test module. We use it to install a happy-dom DOM into the global
+# scope so React Testing Library's top-level `screen` capture has a
+# real document.body at import time.
+
+[test]
+preload = ["./src/test-preload.ts"]

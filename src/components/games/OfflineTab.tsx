@@ -1,5 +1,5 @@
 /**
- * Offline tab — wraps the existing single-player demo view.
+ * Offline tab -- wraps the existing single-player demo view.
  *
  * Preserves the previous `?scenario=pull` URL hook so existing
  * Playwright tests for the pull mechanic continue to work without

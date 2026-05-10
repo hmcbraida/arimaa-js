@@ -1,10 +1,10 @@
 /**
- * Unit tests for `shouldAdoptSnapshot` — the predicate that guards
+ * Unit tests for `shouldAdoptSnapshot` -- the predicate that guards
  * WebSocket snapshot adoption in `NetworkGameView`.
  *
  * The bug being covered here: when the second player joins a waiting session
  * the server emits an `accepted` event whose snapshot has the same transcript
- * as before (no moves have been played) but a different status — the session
+ * as before (no moves have been played) but a different status -- the session
  * transitions from `"waiting"` to `"gold"`. If we only compared transcripts the
  * guard would return early and the "waiting for opponent" banner on the
  * creator's screen would never disappear.
@@ -12,7 +12,7 @@
 
 import { describe, expect, it } from "bun:test";
 import type { SessionSnapshot } from "../../shared/schema";
-import { shouldAdoptSnapshot } from "./NetworkGameView";
+import { shouldAdoptSnapshot } from "./snapshotAdoption";
 
 /** Minimal valid snapshot; individual tests override only the fields they care about. */
 function makeSnapshot(overrides: Partial<SessionSnapshot>): SessionSnapshot {
@@ -24,6 +24,7 @@ function makeSnapshot(overrides: Partial<SessionSnapshot>): SessionSnapshot {
     moveLog: [],
     winner: null,
     reason: null,
+    participants: { gold: null, silver: null },
     createdAt: "2024-01-01T00:00:00.000Z",
     updatedAt: "2024-01-01T00:00:00.000Z",
     ...overrides,
@@ -54,7 +55,7 @@ describe("shouldAdoptSnapshot", () => {
    * early, leaving the creator's snapshot in the `"waiting"` state and
    * keeping the join-code banner visible indefinitely.
    */
-  it("returns true when status changes from waiting to active — the accepted-event bug", () => {
+  it("returns true when status changes from waiting to active -- the accepted-event bug", () => {
     const current = makeSnapshot({ status: "waiting", sideToMove: null });
     const incoming = makeSnapshot({ status: "gold", sideToMove: "gold" });
     expect(shouldAdoptSnapshot(incoming, current)).toBe(true);

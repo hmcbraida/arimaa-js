@@ -11,7 +11,7 @@ import { useContext } from "react";
 import { NetworkContext, type NetworkValue } from "./contextValue";
 
 /**
- * Throws if no provider is mounted upstream — that scenario should
+ * Throws if no provider is mounted upstream -- that scenario should
  * only ever be a developer mistake, so failing loudly is preferable
  * to silently returning null and producing later runtime errors.
  */

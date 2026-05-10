@@ -1,8 +1,8 @@
 /**
  * Networked game view.
  *
- * This is the screen the user lands on after joining or creating a
- * game. It owns:
+ * The screen the user lands on after navigating to a session URL.
+ * Owns:
  *
  * - A local `ArimaaGame` engine seeded from the server's transcript
  *   so the existing Board / ControllerPanel components can be reused
@@ -15,72 +15,30 @@
  *   rolls the preview back so the engine and server stay in sync.
  * - A waiting banner that shows the accept code when the player is
  *   the creator and the opponent has not yet joined.
- *
- * The component is deliberately not hooked into TanStack Router; the
- * route component (`NetworkGameTab`) handles routing concerns and
- * passes down the resolved snapshot.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAuth } from "../../auth/useAuth";
 import { ArimaaGame, type MovementStep } from "../../game";
 import { ApiError } from "../../network/api";
-import { type StoredGame, upsertStoredGame } from "../../network/storage";
 import { useNetwork } from "../../network/useNetwork";
-import type { SessionSnapshot } from "../../shared/schema";
+import type { SessionSnapshot, Side } from "../../shared/schema";
 import { Board } from "../Board";
 import { ControllerPanel } from "../ControllerPanel";
+import { shouldAdoptSnapshot } from "./snapshotAdoption";
 
 interface NetworkGameViewProps {
   /** Latest server snapshot. Drives the initial engine state. */
   readonly initialSnapshot: SessionSnapshot;
-  /** Stored credential record, if the viewer is a player on this session. */
-  readonly stored: StoredGame | null;
 }
 
-/**
- * Build a fresh ArimaaGame from a session snapshot.
- *
- * Pulled out into a helper because it is called in three places
- * (initial mount, after server submit, after a websocket event) and
- * inlining it three times invites bugs.
- */
 function gameFromSnapshot(snapshot: SessionSnapshot): ArimaaGame {
   return ArimaaGame.fromTranscript(snapshot.transcript);
 }
 
-/**
- * Decide whether an incoming WebSocket snapshot should replace the
- * currently held local snapshot.
- *
- * We skip adoption when BOTH the transcript and status are identical:
- *
- * - Comparing transcripts prevents pointless engine rebuilds (and the
- *   accompanying loss of the player's in-progress move preview) when a
- *   duplicate event arrives with unchanged game state.
- * - Comparing status is necessary because the `accepted` event
- *   transitions status from `"waiting"` to a side-to-move value while
- *   the transcript is still the initial setup — no moves have been
- *   played yet. Without this second check the "waiting for opponent"
- *   banner would persist even after the opponent joins.
- *
- * Exported so the unit-test file can import and exercise this predicate
- * without having to mount the full React component tree.
- */
-export function shouldAdoptSnapshot(
-  incoming: SessionSnapshot,
-  current: SessionSnapshot,
-): boolean {
-  return (
-    incoming.transcript !== current.transcript ||
-    incoming.status !== current.status
-  );
-}
-
-export function NetworkGameView({
-  initialSnapshot,
-  stored,
-}: NetworkGameViewProps) {
-  const { api, socket } = useNetwork();
+export function NetworkGameView({ initialSnapshot }: NetworkGameViewProps) {
+  const { gameApi, socket } = useNetwork();
+  const { state: authState, accessToken } = useAuth();
   const [snapshot, setSnapshot] = useState<SessionSnapshot>(initialSnapshot);
   const [game, setGame] = useState<ArimaaGame>(() =>
     gameFromSnapshot(initialSnapshot),
@@ -97,19 +55,32 @@ export function NetworkGameView({
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  // Fetched from the server once per waiting period; null once redeemed.
+  const [acceptToken, setAcceptToken] = useState<string | null>(null);
+
   // Spectators can toggle the board orientation; players are locked to their side.
   const [spectatorFlipped, setSpectatorFlipped] = useState(false);
+
+  /**
+   * Determine the viewer's side, if any. We compare the auth context
+   * user id against the snapshot participants, which is the
+   * server-truth ownership record. An anonymous viewer or an
+   * authenticated user who is not on this game has `viewerSide ===
+   * null`.
+   */
+  const viewerSide: Side | null = useMemo(() => {
+    if (authState.kind !== "authenticated") return null;
+    const userId = authState.user.id;
+    if (snapshot.participants.gold?.userId === userId) return "gold";
+    if (snapshot.participants.silver?.userId === userId) return "silver";
+    return null;
+  }, [authState, snapshot.participants]);
 
   // We keep a ref to the latest snapshot so the websocket effect can
   // read it without re-subscribing on every snapshot change.
   const snapshotRef = useRef(snapshot);
   snapshotRef.current = snapshot;
 
-  /**
-   * Replace the engine with a fresh one synthesised from `next`, and
-   * remember the new snapshot. Done together so the component's view
-   * of "server truth" and "engine state" never drift.
-   */
   const adoptSnapshot = useCallback((next: SessionSnapshot) => {
     setSnapshot(next);
     setGame(gameFromSnapshot(next));
@@ -123,11 +94,6 @@ export function NetworkGameView({
    */
   useEffect(() => {
     const unsubscribe = socket.subscribe(initialSnapshot.id, (event) => {
-      // All event payloads include the latest snapshot, so we can
-      // adopt it uniformly regardless of event type. We only do so
-      // when something meaningful has changed — see `shouldAdoptSnapshot`
-      // for the exact predicate and why status must be checked alongside
-      // the transcript.
       const incomingSnapshot =
         event.type === "completed" ||
         event.type === "move" ||
@@ -145,32 +111,32 @@ export function NetworkGameView({
     };
   }, [initialSnapshot.id, socket, adoptSnapshot]);
 
-  /**
-   * Whose move is it? Used to disable the controller for the player
-   * whose turn it is not.
-   */
-  const myTurn = useMemo(() => {
-    if (stored === null || stored.side === null) return false;
-    return snapshot.sideToMove === stored.side;
-  }, [snapshot.sideToMove, stored]);
+  // Fetch the accept token whenever this session is in the waiting state
+  // and the viewer is a participant. Clears when the game starts.
+  useEffect(() => {
+    const at = accessToken();
+    if (snapshot.status !== "waiting" || viewerSide === null || at === null) {
+      setAcceptToken(null);
+      return;
+    }
+    let cancelled = false;
+    gameApi
+      .getSessionAcceptToken({ accessToken: at, sessionId: snapshot.id })
+      .then((res) => {
+        if (!cancelled) setAcceptToken(res.acceptToken);
+      })
+      .catch(() => {
+        // Non-fatal -- the banner just won't show a code.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [gameApi, accessToken, snapshot.id, snapshot.status, viewerSide]);
 
-  /**
-   * Is the current viewer just spectating?
-   */
-  const spectator = stored === null || stored.role !== "player";
+  const myTurn = viewerSide !== null && snapshot.sideToMove === viewerSide;
+  const spectator = viewerSide === null;
+  const flipped = spectator ? spectatorFlipped : viewerSide === "silver";
 
-  /**
-   * Board orientation. Silver players always see a flipped board (rank 1 at
-   * top). Spectators start with the gold perspective but can toggle. Gold
-   * players always see the normal orientation.
-   */
-  const flipped = spectator ? spectatorFlipped : stored?.side === "silver";
-
-  /**
-   * Forward a step to the engine. We allow this only if the viewer
-   * holds the credential for the side currently to move. Spectators
-   * see a read-only board.
-   */
   const onStep = useCallback(
     (step: MovementStep) => {
       if (!myTurn) return;
@@ -180,11 +146,6 @@ export function NetworkGameView({
     [game, myTurn, refresh],
   );
 
-  /**
-   * Undo the latest visible step. Allowed only while the viewer is
-   * actively composing their own move; we do not roll back a
-   * server-confirmed move.
-   */
   const onUndoVisibleStep = useCallback(() => {
     if (!myTurn) return;
     if (game.undoVisibleStep()) refresh();
@@ -192,17 +153,10 @@ export function NetworkGameView({
 
   /**
    * Submit the current preview to the server.
-   *
-   * We compose the move notation from the engine's currentMoveSteps
-   * field — exactly the same way the engine builds a finished move
-   * notation internally. Posting that string to the server is the
-   * single source of legality truth; if the server accepts, we adopt
-   * the new snapshot and discard the preview, if it rejects, we roll
-   * the preview back to keep our state aligned with the server's.
    */
   const onSubmitTurn = useCallback(async () => {
-    if (stored === null || stored.secretToken === null) return;
-    if (!myTurn || submitting) return;
+    const at = accessToken();
+    if (at === null || !myTurn || submitting) return;
 
     const currentSteps = game.getCurrentMoveSteps();
     if (currentSteps.length === 0) return;
@@ -214,9 +168,9 @@ export function NetworkGameView({
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const response = await api.submitMove({
+      const response = await gameApi.submitMove({
+        accessToken: at,
         sessionId: snapshot.id,
-        secretToken: stored.secretToken,
         body: { moveNotation },
       });
       adoptSnapshot(response.snapshot);
@@ -224,7 +178,7 @@ export function NetworkGameView({
       // Roll the preview steps back so the local engine matches the
       // server's still-current view of the position.
       while (game.undoVisibleStep()) {
-        // Loop body intentionally empty — undoVisibleStep returns
+        // Loop body intentionally empty --  undoVisibleStep returns
         // false when there is nothing left to undo.
       }
       refresh();
@@ -239,9 +193,9 @@ export function NetworkGameView({
       setSubmitting(false);
     }
   }, [
-    api,
+    gameApi,
+    accessToken,
     snapshot.id,
-    stored,
     myTurn,
     submitting,
     game,
@@ -250,65 +204,40 @@ export function NetworkGameView({
   ]);
 
   /**
-   * Forward export and import requests to the engine.
-   *
-   * Export is read-only; import is a destructive replace, but in
-   * networked play it would desynchronise from the server, so we
-   * disable it by ignoring the call. The controller panel still
-   * exposes the buttons for a consistent feel; clicking import in
-   * networked mode simply does nothing useful.
+   * Forward export and import requests to the engine. Import is a
+   * destructive replace; in networked play it would desynchronise
+   * from the server, so we silently ignore it. The controller panel
+   * still exposes the buttons for a consistent feel.
    */
   const onExportTranscript = useCallback(() => game.toTranscript(), [game]);
   const onImportTranscript = useCallback(() => {
     // Intentional no-op in network mode.
   }, []);
 
-  /**
-   * If the viewer is the creator of a still-waiting game, store the
-   * latest snapshot so the games-table can display the accept code.
-   * Also, the creator may have opened the page directly (e.g. they
-   * shared the URL with themselves) and the `acceptToken` is stored
-   * in localStorage from when they created the session.
-   */
-  const acceptCode =
-    snapshot.status === "waiting" && stored !== null
-      ? stored.acceptToken
-      : null;
-
-  /**
-   * On every fresh snapshot, persist the most recent role/side back
-   * to localStorage so subsequent renders reflect the truth.
-   */
-  useEffect(() => {
-    if (stored === null) return;
-    upsertStoredGame({
-      ...stored,
-      // If the game has finished, drop the accept token because it's
-      // no longer meaningful. (It would already have been cleared
-      // server-side by acceptance, but defensive cleanup is cheap.)
-      acceptToken: snapshot.status === "completed" ? null : stored.acceptToken,
-      addedAt: stored.addedAt,
-    });
-  }, [snapshot.status, stored]);
+  const showWaitingBanner = snapshot.status === "waiting";
 
   return (
     <section className="flex flex-col gap-6">
-      {acceptCode !== null && (
+      {showWaitingBanner && (
         <div className="border border-tn-yellow/50 bg-tn-yellow/10 p-4 text-sm text-tn-fg">
-          Waiting for opponent. Share this code with your opponent so they can
-          join:{" "}
-          <span className="font-mono text-base text-tn-yellow">
-            {acceptCode}
-          </span>
+          {viewerSide !== null && acceptToken !== null ? (
+            <>
+              Waiting for opponent. Share this code:{" "}
+              <span className="font-mono font-bold tracking-widest">
+                {acceptToken}
+              </span>
+            </>
+          ) : (
+            "Waiting for opponent."
+          )}
         </div>
       )}
       {snapshot.status === "completed" && (
         <div className="border border-tn-border bg-tn-surface p-4 text-sm text-tn-fg">
-          Game finished — {snapshot.winner === "gold" ? "Gold" : "Silver"} won (
-          {snapshot.reason}).
+          Game finished -- {snapshot.winner === "gold" ? "Gold" : "Silver"} won
+          ({snapshot.reason}).
         </div>
       )}
-      {/* Role / perspective indicator */}
       {spectator && (
         <div className="flex items-center justify-between gap-4 border border-tn-border bg-tn-panel p-4 text-sm text-tn-fg-muted">
           <span>You are spectating this game. Moves are read-only.</span>
@@ -332,17 +261,10 @@ export function NetworkGameView({
 
       <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
         <Board
-          // Re-keying on engineKey discards the Board's square-selection
-          // state when the engine is replaced from a server update.
           key={engineKey}
           game={game}
           revision={revision}
           flipped={flipped}
-          // Spectators and the off-turn player still see legal-move
-          // dots highlighted, but their clicks are dropped because
-          // the engine refuses any moves the side-to-move can't make.
-          // We additionally short-circuit at the prop level to keep
-          // a clear audit trail in the component tree.
           onStep={spectator ? () => undefined : onStep}
           onUndoVisibleStep={spectator ? () => undefined : onUndoVisibleStep}
         />

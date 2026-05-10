@@ -6,6 +6,17 @@
 repo = "local"
 
 [[repos.hooks]]
+id = "no-ai-dash"
+name = "Replace em dashes with -- "
+language = "system"
+# Rewrites U+2014 to "-- " in every staged text file. The hook does not
+# re-stage; prek/pre-commit treats post-modification as a failure, so the commit
+# aborts and the author must `git add` the cleaned files and retry.
+entry = "sh -c 'for f in \"$@\"; do sed -i \"s/— /-- /g\" \"$f\"; done' --"
+types = ["text"]
+exclude = {glob = ["^bun\\.lock$", "prek\\.toml"]}
+
+[[repos.hooks]]
 id = "lint"
 name = "Lint (eslint + biome)"
 language = "system"

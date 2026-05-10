@@ -2,8 +2,8 @@
  * Tab strip primitive.
  *
  * Used by the App shell to switch between the games-list tab and the
- * offline single-page game. The component is controlled — the parent
- * supplies the active tab id and an `onChange` handler — so tab state
+ * offline single-page game. The component is controlled -- the parent
+ * supplies the active tab id and an `onChange` handler -- so tab state
  * can come from a router (TanStack Router) rather than from internal
  * component state.
  */
@@ -18,7 +18,7 @@ export interface TabDescriptor {
 interface TabsProps {
   readonly tabs: readonly TabDescriptor[];
   /** The id of the tab currently active. */
-  readonly activeId: string;
+  readonly activeId: string | null;
   /** Invoked with the new tab's id when the user clicks one. */
   readonly onChange: (id: string) => void;
   /** Content of the active tab. */

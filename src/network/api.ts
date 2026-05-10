@@ -1,149 +1,70 @@
 /**
- * Browser-side API client for the Arimaa session API.
+ * Shared error type and `fetch` helpers for the network layer.
  *
- * The interface is exposed first so React components depend on the
- * abstraction, not on `fetch`. The default `HttpApiClient` exists for
- * production; a `FakeApiClient` lives next to it (in `apiFake.ts`) and
- * is used by component tests to drive the UI deterministically without
- * spinning up a real backend.
+ * The API surface is split across two specialised clients —
+ * `AuthApiClient` (auth-related) and `GameSessionApiClient`
+ * (gameplay-related). Both depend on the helpers in this file so the
+ * error envelope and the response-parsing flow are identical
+ * everywhere.
  *
- * Every response is validated through the shared zod schemas before it
- * is returned. That makes server contract regressions show up at the
- * call site as a parse error rather than as a confusing render-time
- * crash three components deep.
+ * Each response is validated through a shared zod schema before it is
+ * returned to the caller. That makes server-contract regressions show
+ * up at the call site as a parse error rather than as a confusing
+ * render-time crash three components deep.
  */
 
-import {
-  type AcceptSessionRequest,
-  type AcceptSessionResponse,
-  type CreateSessionResponse,
-  type GetSessionResponse,
-  type Side,
-  type SubmitMoveRequest,
-  type SubmitMoveResponse,
-  acceptSessionResponseSchema,
-  createSessionResponseSchema,
-  getSessionResponseSchema,
-  submitMoveResponseSchema,
-} from "../shared/schema";
+import type { ZodType } from "zod";
 
 /**
- * The error thrown by the API client for non-2xx responses.
+ * Error thrown by both API clients for non-2xx responses.
  *
- * Carries the HTTP status so UI code can branch on it (for example, to
- * render different copy for "wrong turn" vs "invalid move").
+ * Carries the HTTP status so UI code can branch on it (e.g. render
+ * different copy for "wrong turn" vs "invalid move"). The optional
+ * `code` mirrors the structured `code` field on the server's error
+ * envelope, used by the auth flow to distinguish e.g. `username-taken`
+ * from `email-taken`.
  */
 export class ApiError extends Error {
   public readonly status: number;
-  public constructor(status: number, message: string) {
+  public readonly code: string | null;
+  public constructor(
+    status: number,
+    message: string,
+    code: string | null = null,
+  ) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.code = code;
   }
 }
 
 /**
- * Public interface that components and hooks depend on.
- *
- * Each method is one HTTP call. The interface is intentionally small —
- * the API itself is small — and identical in shape between the real
- * implementation and the in-memory fake.
- */
-export interface ApiClient {
-  createSession(side: Side): Promise<CreateSessionResponse>;
-  acceptSession(body: AcceptSessionRequest): Promise<AcceptSessionResponse>;
-  getSession(sessionId: string): Promise<GetSessionResponse>;
-  submitMove(args: {
-    sessionId: string;
-    secretToken: string;
-    body: SubmitMoveRequest;
-  }): Promise<SubmitMoveResponse>;
-}
-
-/**
- * Production HTTP implementation backed by the browser `fetch`.
- *
- * `baseUrl` is the path prefix that comes before `/api/...` in every request.
- * In production it is `"/arimaatic"` (derived from Vite's BASE_URL), which the
- * outer reverse proxy maps to the container root before the request arrives.
- * For local development pointing directly at the API server it can be a full
- * origin such as `"http://localhost:3001"`.  The default empty string keeps
- * the path as `/api/...` for tests and simple same-origin deployments.
- */
-export class HttpApiClient implements ApiClient {
-  public constructor(private readonly baseUrl: string = "") {}
-
-  async createSession(side: Side): Promise<CreateSessionResponse> {
-    const response = await fetch(
-      `${this.baseUrl}/api/sessions?side=${encodeURIComponent(side)}`,
-      { method: "POST" },
-    );
-    return parseOrThrow(response, createSessionResponseSchema);
-  }
-
-  async acceptSession(
-    body: AcceptSessionRequest,
-  ): Promise<AcceptSessionResponse> {
-    const response = await fetch(`${this.baseUrl}/api/session-accept`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    return parseOrThrow(response, acceptSessionResponseSchema);
-  }
-
-  async getSession(sessionId: string): Promise<GetSessionResponse> {
-    const response = await fetch(
-      `${this.baseUrl}/api/sessions/${encodeURIComponent(sessionId)}`,
-    );
-    return parseOrThrow(response, getSessionResponseSchema);
-  }
-
-  async submitMove(args: {
-    sessionId: string;
-    secretToken: string;
-    body: SubmitMoveRequest;
-  }): Promise<SubmitMoveResponse> {
-    const response = await fetch(
-      `${this.baseUrl}/api/sessions/${encodeURIComponent(args.sessionId)}/moves`,
-      {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          authorization: `Bearer ${args.secretToken}`,
-        },
-        body: JSON.stringify(args.body),
-      },
-    );
-    return parseOrThrow(response, submitMoveResponseSchema);
-  }
-}
-
-/**
- * Helper that turns a `fetch` response into a parsed body.
+ * Parse a `fetch` response into a typed body or throw `ApiError`.
  *
  * On non-2xx the function reads the body, attempts to extract a
- * server-supplied `message`, and throws `ApiError`. On 2xx it parses
- * the JSON through the supplied zod schema; a parse failure is treated
- * as a contract violation and re-thrown as `ApiError(500)`.
+ * server-supplied `message` and `code`, and throws. On 2xx it parses
+ * the JSON through the supplied zod schema; a parse failure is
+ * treated as a contract violation and re-thrown as `ApiError(500)`.
  */
-async function parseOrThrow<T>(
+export async function parseOrThrow<T>(
   response: Response,
-  schema: { parse(input: unknown): T },
+  schema: ZodType<T>,
 ): Promise<T> {
   const text = await response.text();
-  // Empty bodies parse to `null`; for our API that should not happen,
-  // but we guard so a stray empty response is not silently accepted.
+  // Empty bodies parse to `null`; for our API that should not happen
+  // on a 2xx, but we guard so a stray empty response is not silently
+  // accepted.
   const data = text.length === 0 ? null : (JSON.parse(text) as unknown);
   if (!response.ok) {
-    const message =
-      data !== null &&
-      typeof data === "object" &&
-      "message" in data &&
-      typeof (data as { message: unknown }).message === "string"
-        ? (data as { message: string }).message
-        : `HTTP ${response.status}`;
-    throw new ApiError(response.status, message);
+    let message = `HTTP ${response.status}`;
+    let code: string | null = null;
+    if (data !== null && typeof data === "object") {
+      const obj = data as { message?: unknown; code?: unknown };
+      if (typeof obj.message === "string") message = obj.message;
+      if (typeof obj.code === "string") code = obj.code;
+    }
+    throw new ApiError(response.status, message, code);
   }
   try {
     return schema.parse(data);

@@ -14,7 +14,7 @@ export default {
         sans: ["Barlow", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       colors: {
-        // Tokyo Night colour palette — only colours actively used as Tailwind classes
+        // Tokyo Night colour palette -- only colours actively used as Tailwind classes
         tn: {
           bg: "#1a1b2e",
           surface: "#1f2335",

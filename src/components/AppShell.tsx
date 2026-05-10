@@ -1,46 +1,42 @@
 /**
- * Application shell — the page chrome rendered by every route.
+ * Application shell -- the page chrome rendered by every in-app route.
  *
  * Owns:
  * - the heading
+ * - the user-menu (replaces the previous About button)
  * - the tab strip
  * - the `<Outlet />` slot where the active route's component renders
  *
- * The tab strip's "active" state is derived from the current path so
- * the offline route highlights the Offline tab, and any other route
- * (games list or session view) highlights Games.
+ * The auth-area routes (`/login`, `/register`, …) skip this shell
+ * entirely -- they wrap themselves in the smaller `AuthLayout` instead.
  */
 
 import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useState } from "react";
-import { AboutModal } from "./AboutModal";
+import { UserMenu } from "./UserMenu";
 import { Tabs } from "./ui/Tabs";
 
 export function AppShell() {
   const navigate = useNavigate();
   const path = useRouterState({ select: (state) => state.location.pathname });
-  const [aboutOpen, setAboutOpen] = useState(false);
 
-  // The session view is a sub-screen of the games tab so we treat
-  // it the same way for highlighting purposes.
-  const activeTab = path === "/offline" ? "offline" : "games";
+  // We pass this in the indicate the currently active tab.
+  // It's based on the route passed in from the tanstack router state
+  let activeTab: string | null = null;
+  if (path === "/offline") {
+    activeTab = "offline";
+  } else if (path === "/") {
+    activeTab = "games";
+  }
 
   return (
     <main className="min-h-screen bg-tn-bg px-6 py-8 text-tn-fg">
       <div className="mx-auto flex max-w-7xl flex-col gap-8">
         <header className="flex items-center justify-between border-b border-tn-border pb-5">
           <h1 className="text-3xl text-tn-fg">
-            Arimaatic -- an Arimaa application
+            Arimaatic -- Play Arimaa online
           </h1>
-          <button
-            type="button"
-            onClick={() => setAboutOpen(true)}
-            className="text-sm text-tn-fg-muted hover:text-tn-fg"
-          >
-            About
-          </button>
+          <UserMenu />
         </header>
-        <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
         <Tabs
           tabs={[
             { id: "games", label: "Games" },

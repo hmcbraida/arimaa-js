@@ -15,11 +15,11 @@ import { defineConfig, devices } from "@playwright/test";
  * layout regression at that viewport.
  *
  * Viewports covered:
- *   chromium            — 1280×720 desktop baseline
- *   pixel-7             — 412×915 (portrait) — common Android flagship
- *   pixel-7-landscape   — 915×412 — landscape phone, stress-tests the board height
- *   iphone-se           — 375×667 — narrowest mainstream iOS device
- *   ipad                — 810×1080 — mid-size tablet portrait
+ *   chromium            -- 1280×720 desktop baseline
+ *   pixel-7             -- 412×915 (portrait) -- common Android flagship
+ *   pixel-7-landscape   -- 915×412 -- landscape phone, stress-tests the board height
+ *   iphone-se           -- 375×667 -- narrowest mainstream iOS device
+ *   ipad                -- 810×1080 -- mid-size tablet portrait
  */
 export default defineConfig({
   testDir: "./tests/ui",

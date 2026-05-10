@@ -1,15 +1,15 @@
 /**
- * Modal that lets the user join an existing game by entering an
- * 8-digit accept code.
+ * Modal that lets an authenticated user join an existing game by
+ * entering the 8-digit accept code shared by the creator.
  *
- * On submit we call `api.acceptSession` with the code; on success the
- * server returns the session id, our assigned side, and a freshly
- * minted secret token. We persist the credentials and notify the
- * parent so it can navigate to the joined game.
+ * On success the parent component navigates to `/sessions/:id`. We do
+ * not persist anything client-side -- the user's relationship to the
+ * session is now stored server-side in the gold/silver user-id
+ * columns, and the games list will pick it up on next reload.
  */
 
 import { useState } from "react";
-import { upsertStoredGame } from "../../network/storage";
+import { useAuth } from "../../auth/useAuth";
 import { useNetwork } from "../../network/useNetwork";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
@@ -22,14 +22,12 @@ interface JoinGameModalProps {
 }
 
 export function JoinGameModal({ open, onClose, onJoined }: JoinGameModalProps) {
-  const { api } = useNetwork();
+  const { gameApi } = useNetwork();
+  const { accessToken } = useAuth();
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Validation message that shows beneath the input. We surface it
-  // inline rather than blocking submit so the user gets immediate
-  // feedback without being trapped behind a disabled button.
   const validationHint =
     code.length === 0
       ? "Eight-digit code from your opponent"
@@ -38,19 +36,17 @@ export function JoinGameModal({ open, onClose, onJoined }: JoinGameModalProps) {
         : "Code must be exactly eight digits";
 
   const onSubmit = async () => {
+    const at = accessToken();
+    if (at === null) {
+      setError("You must be signed in to join a game.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
-      const accepted = await api.acceptSession({ acceptToken: code });
-      upsertStoredGame({
-        sessionId: accepted.sessionId,
-        role: "player",
-        side: accepted.side,
-        secretToken: accepted.secretToken,
-        // Joined players never have an accept token of their own to
-        // share — that field is only meaningful for the creator.
-        acceptToken: null,
-        addedAt: new Date().toISOString(),
+      const accepted = await gameApi.acceptSession({
+        accessToken: at,
+        body: { acceptToken: code },
       });
       onJoined(accepted.sessionId);
     } catch (err) {
@@ -65,8 +61,6 @@ export function JoinGameModal({ open, onClose, onJoined }: JoinGameModalProps) {
       <TextField
         label="Game code"
         value={code}
-        // We allow only digits and clamp to eight characters so the
-        // accept-code format is enforced as the user types.
         onChange={(event) =>
           setCode(event.target.value.replace(/\D/g, "").slice(0, 8))
         }

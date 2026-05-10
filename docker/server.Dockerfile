@@ -2,7 +2,7 @@
 #
 # We run TypeScript directly through Bun (no separate compile step)
 # because Bun's native loader handles `.ts` and `.tsx` files end-to-end.
-# That keeps the image simple — one binary, one entrypoint — and avoids
+# That keeps the image simple -- one binary, one entrypoint -- and avoids
 # the maintenance overhead of producing a separate `dist/server` build.
 #
 # The image takes the entire repository as build context. Only the

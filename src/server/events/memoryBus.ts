@@ -8,7 +8,7 @@
  * to the next subscriber on the same session.
  *
  * If two API processes ever need to share state, they should use the NATS
- * implementation instead — this bus has no cross-process visibility.
+ * implementation instead -- this bus has no cross-process visibility.
  */
 
 import type { SessionEvent } from "../../shared/schema";

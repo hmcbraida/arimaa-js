@@ -5,14 +5,14 @@ import { type Locator, type Page, expect, test } from "@playwright/test";
  *
  * These tests encode the minimum visual contract for every screen size:
  *
- *   1. No horizontal overflow — the page must not grow wider than the
+ *   1. No horizontal overflow -- the page must not grow wider than the
  *      viewport. Horizontal scrollbars are the most common sign of a
  *      broken mobile layout.
  *
- *   2. Board within viewport — the board section must not bleed past
+ *   2. Board within viewport -- the board section must not bleed past
  *      the right edge of the visible area.
  *
- *   3. Touch target sizes — interactive elements must meet the 44 × 44 px
+ *   3. Touch target sizes -- interactive elements must meet the 44 × 44 px
  *      minimum recommended by Apple HIG and WCAG 2.5.5. Board squares and
  *      action buttons are checked because they are the primary interaction
  *      surface on a touch device.
@@ -44,7 +44,7 @@ async function assertNoHorizontalOverflow(page: Page): Promise<void> {
 
 /**
  * Asserts that a located element is entirely within the viewport's horizontal
- * bounds — i.e. its left edge is ≥ 0 and its right edge is ≤ viewport width.
+ * bounds -- i.e. its left edge is ≥ 0 and its right edge is ≤ viewport width.
  *
  * This is stricter than Playwright's built-in toBeInViewport(), which passes
  * if any part of the element is visible. We want the whole board on screen
@@ -63,10 +63,13 @@ async function assertWithinViewportWidth(
     box?.x,
     `${label}: left edge must be within viewport`,
   ).toBeGreaterThanOrEqual(0);
+  // The earlier expects already proved both shapes are non-null; the
+  // non-null assertions here are just for the type checker.
   expect(
-    box?.x + box?.width,
+    (box as { x: number; width: number }).x +
+      (box as { x: number; width: number }).width,
     `${label}: right edge must not exceed viewport width`,
-  ).toBeLessThanOrEqual(viewport?.width);
+  ).toBeLessThanOrEqual((viewport as { width: number }).width);
 }
 
 /**
@@ -95,7 +98,7 @@ async function assertTouchTarget(
 // Tests
 // ---------------------------------------------------------------------------
 
-test.describe("Responsive layout — offline game page", () => {
+test.describe("Responsive layout -- offline game page", () => {
   test("has no horizontal overflow", async ({ page }) => {
     await page.goto("offline");
     await assertNoHorizontalOverflow(page);
@@ -130,7 +133,10 @@ test.describe("Responsive layout — offline game page", () => {
         box?.x,
         `${sq} must not overlap ${prevLabel} (right edge at ${prevRight.toFixed(1)}px)`,
       ).toBeGreaterThanOrEqual(prevRight - 1); // 1 px tolerance for sub-pixel rounding
-      prevRight = box?.x + box?.width;
+      // Cast guarded by the prior `expect(box, ...).not.toBeNull()`.
+      prevRight =
+        (box as { x: number; width: number }).x +
+        (box as { x: number; width: number }).width;
       prevLabel = sq;
     }
   });
@@ -161,7 +167,7 @@ test.describe("Responsive layout — offline game page", () => {
     page,
   }) => {
     await page.goto("offline");
-    // Sample the four corners and centre — enough to catch track-sizing
+    // Sample the four corners and centre -- enough to catch track-sizing
     // issues without measuring all 64 squares.
     const sampleSquares = ["a1", "a8", "h1", "h8", "d4", "e5"] as const;
     for (const sq of sampleSquares) {
@@ -170,7 +176,7 @@ test.describe("Responsive layout — offline game page", () => {
   });
 });
 
-test.describe("Responsive layout — games list page", () => {
+test.describe("Responsive layout -- games list page", () => {
   test("has no horizontal overflow", async ({ page }) => {
     await page.goto(".");
     await assertNoHorizontalOverflow(page);
