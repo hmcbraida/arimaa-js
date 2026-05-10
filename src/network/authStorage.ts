@@ -16,7 +16,7 @@
  */
 
 import { z } from "zod";
-import { userProfileSchema } from "../shared/schema";
+import { protectedUserProfileSchema } from "../shared/schema";
 
 /**
  * The shape of the persisted auth blob.
@@ -30,7 +30,7 @@ import { userProfileSchema } from "../shared/schema";
  */
 const persistedAuthSchema = z.object({
   version: z.literal(2),
-  user: userProfileSchema,
+  user: protectedUserProfileSchema,
 });
 
 export type PersistedAuth = z.infer<typeof persistedAuthSchema>;

@@ -15,13 +15,13 @@
 
 import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
-import { z } from "zod";
 import {
+  changePasswordRequestSchema,
   createUserRequestSchema,
   createUserResponseSchema,
   emptyResponseSchema,
   errorResponseSchema,
-  userProfileSchema,
+  protectedUserProfileSchema,
 } from "../../shared/schema";
 import {
   issueRefreshToken,
@@ -51,15 +51,6 @@ function rtCookieOptions(secureCookies: boolean, expiresAt: Date) {
     expires: expiresAt,
   };
 }
-
-/**
- * Body schema for the change-password endpoint. Defined inline here
- * because no other route needs it.
- */
-const changePasswordRequestSchema = z.object({
-  currentPassword: z.string().min(1),
-  newPassword: z.string().min(8).max(200),
-});
 
 /**
  * Build the verification URL embedded in the email body. We assume
@@ -185,7 +176,7 @@ export function registerUserRoutes(
     {
       schema: {
         response: {
-          200: userProfileSchema,
+          200: protectedUserProfileSchema,
           401: errorResponseSchema,
         },
       },

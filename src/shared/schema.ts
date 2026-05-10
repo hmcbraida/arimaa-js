@@ -284,10 +284,11 @@ export const emailSchema = z.email().max(254);
 export const passwordSchema = z.string().min(8).max(200);
 
 /**
- * Public profile shape returned by `GET /users/me`. We deliberately
- * do not expose `passwordHash` or any other secret-bearing column.
+ * Profile shape for authenticated endpoints (`GET /users/me`, session
+ * bundles, etc.). Includes `emailAddress` — do NOT embed this in any
+ * publicly-visible API response; use a narrower schema there instead.
  */
-export const userProfileSchema = z.object({
+export const protectedUserProfileSchema = z.object({
   id: z.uuid(),
   username: z.string(),
   emailAddress: z.string(),
@@ -296,7 +297,7 @@ export const userProfileSchema = z.object({
   isActivated: z.boolean(),
   isDisabled: z.boolean(),
 });
-export type UserProfile = z.infer<typeof userProfileSchema>;
+export type UserProfile = z.infer<typeof protectedUserProfileSchema>;
 
 /* --------------------------------------------------------------------- */
 /* Account creation                                                       */
@@ -312,6 +313,13 @@ export const createUserRequestSchema = z.object({
 });
 export type CreateUserRequest = z.infer<typeof createUserRequestSchema>;
 
+/** `PUT /api/users/me/password` body. */
+export const changePasswordRequestSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: passwordSchema,
+});
+export type ChangePasswordRequest = z.infer<typeof changePasswordRequestSchema>;
+
 /**
  * The login / register / refresh endpoints all return the same
  * "session bundle": the JWT access token and the user's profile.
@@ -325,7 +333,7 @@ export const sessionBundleSchema = z.object({
    * pre-emptively refresh the token rather than waiting for a 401.
    */
   accessTokenExpiresAt: z.string(),
-  user: userProfileSchema,
+  user: protectedUserProfileSchema,
 });
 export type SessionBundle = z.infer<typeof sessionBundleSchema>;
 
@@ -341,7 +349,7 @@ export type SessionBundle = z.infer<typeof sessionBundleSchema>;
  * detects this and routes the user to the login-pending screen.
  */
 export const createUserResponseSchema = z.object({
-  user: userProfileSchema,
+  user: protectedUserProfileSchema,
   accessToken: z.string().nullable(),
   accessTokenExpiresAt: z.string().nullable(),
 });
@@ -400,12 +408,12 @@ export const refreshAccessTokenResponseSchema = z.discriminatedUnion("ok", [
     ok: z.literal(true),
     accessToken: z.string(),
     accessTokenExpiresAt: z.string(),
-    user: userProfileSchema,
+    user: protectedUserProfileSchema,
   }),
   z.object({
     ok: z.literal(false),
     reason: refreshFailureReasonSchema,
-    user: userProfileSchema.nullable(),
+    user: protectedUserProfileSchema.nullable(),
   }),
 ]);
 export type RefreshAccessTokenResponse = z.infer<

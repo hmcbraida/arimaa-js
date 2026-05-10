@@ -256,19 +256,9 @@ export function AuthProvider({ api, storage, children }: AuthProviderProps) {
   }, [api, wipeAuth]);
 
   const cancelSignIn = useCallback(async (): Promise<AuthState> => {
-    // Same effect as signOut but without surfacing the user via
-    // the `signedOut` event log (none exists in this build, but the
-    // semantic distinction matters for future analytics).
-    try {
-      await api.logout();
-    } catch {
-      // Best-effort.
-    }
-    wipeAuth();
-    const next: AuthState = { kind: "anonymous" };
-    setState(next);
-    return next;
-  }, [api, wipeAuth]);
+    await signOut();
+    return { kind: "anonymous" };
+  }, [signOut]);
 
   const retryRedeem = useCallback(async (): Promise<AuthState> => {
     setState({ kind: "loading" });

@@ -26,7 +26,7 @@ import {
   emptyResponseSchema,
   loginResponseSchema,
   refreshAccessTokenResponseSchema,
-  userProfileSchema,
+  protectedUserProfileSchema,
 } from "../shared/schema";
 import { parseOrThrow } from "./api";
 
@@ -140,7 +140,7 @@ export class HttpAuthApiClient implements AuthApiClient {
       headers: { authorization: `Bearer ${accessToken}` },
       credentials: "include",
     });
-    return parseOrThrow(response, userProfileSchema);
+    return parseOrThrow(response, protectedUserProfileSchema);
   }
 
   async deleteAccount(accessToken: string): Promise<EmptyResponse> {

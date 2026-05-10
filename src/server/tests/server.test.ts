@@ -40,7 +40,7 @@ import {
   refreshAccessTokenResponseSchema,
   sessionEventSchema,
   submitMoveResponseSchema,
-  userProfileSchema,
+  protectedUserProfileSchema,
 } from "../../shared/schema";
 import { createAuthTokenSigner, secretFromString } from "../auth/tokens";
 import { RecordingEmailSender } from "../email/sender";
@@ -858,7 +858,7 @@ describe("GET /api/users/me", () => {
       headers: { authorization: `Bearer ${accessToken}` },
     });
     expect(response.statusCode).toBe(200);
-    const body = userProfileSchema.parse(response.json());
+    const body = protectedUserProfileSchema.parse(response.json());
     expect(body.username).toBe("me");
     await ctx.app.close();
   });
