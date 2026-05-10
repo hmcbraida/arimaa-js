@@ -314,18 +314,11 @@ export type CreateUserRequest = z.infer<typeof createUserRequestSchema>;
 
 /**
  * The login / register / refresh endpoints all return the same
- * "session bundle": the opaque refresh token and the JWT access token,
- * along with the user's own profile so the client doesn't need a
- * follow-up `/users/me` call to render their navbar.
+ * "session bundle": the JWT access token and the user's profile.
+ * The refresh token is delivered separately as an httpOnly cookie
+ * (`rt`) so it never touches JavaScript memory.
  */
 export const sessionBundleSchema = z.object({
-  refreshToken: z.string(),
-  /**
-   * Expiry timestamp for the refresh token, ISO 8601. Used by the
-   * frontend to optionally hide a clearly-dead refresh token before
-   * presenting it to the API.
-   */
-  refreshTokenExpiresAt: z.string(),
   accessToken: z.string(),
   /**
    * Expiry timestamp for the access token, ISO 8601. Lets the client
@@ -339,16 +332,16 @@ export type SessionBundle = z.infer<typeof sessionBundleSchema>;
 /**
  * `POST /api/users` response. Account creation is a successful login
  * even though the account is not yet activated, so the response is
- * the full session bundle. The user can store the refresh token and,
- * once they verify their email, exchange it for an access token.
+ * the full session bundle. The refresh token is delivered as an
+ * httpOnly cookie (`rt`) rather than in the body; only the access
+ * token (which the frontend must include in every API request) is
+ * returned here.
  *
  * Until activation the access token field is `null`. The frontend
  * detects this and routes the user to the login-pending screen.
  */
 export const createUserResponseSchema = z.object({
   user: userProfileSchema,
-  refreshToken: z.string(),
-  refreshTokenExpiresAt: z.string(),
   accessToken: z.string().nullable(),
   accessTokenExpiresAt: z.string().nullable(),
 });
@@ -387,15 +380,11 @@ export const loginResponseSchema = createUserResponseSchema;
 export type LoginResponse = z.infer<typeof loginResponseSchema>;
 
 /**
- * `POST /api/auth/login-sessions/current/refresh-tokens` body. The
- * refresh token authenticates the call (Authorization header is not
- * used for this endpoint specifically because the server treats the
- * refresh token as a body-level credential rather than a bearer
- * credential --  bearer credentials are reserved for access tokens).
+ * `POST /api/auth/login-sessions/current/refresh-tokens` has no request
+ * body — the refresh token is read from the `rt` httpOnly cookie which
+ * the browser sends automatically.
  */
-export const refreshAccessTokenRequestSchema = z.object({
-  refreshToken: z.string().min(1),
-});
+export const refreshAccessTokenRequestSchema = z.object({}).strict();
 export type RefreshAccessTokenRequest = z.infer<
   typeof refreshAccessTokenRequestSchema
 >;
@@ -424,12 +413,11 @@ export type RefreshAccessTokenResponse = z.infer<
 >;
 
 /**
- * `DELETE /api/auth/login-sessions/current` body --  the refresh token
- * to revoke. Logout is idempotent.
+ * `DELETE /api/auth/login-sessions/current` has no request body — the
+ * refresh token to revoke is read from the `rt` httpOnly cookie.
+ * Logout is idempotent.
  */
-export const logoutRequestSchema = z.object({
-  refreshToken: z.string().min(1),
-});
+export const logoutRequestSchema = z.object({}).strict();
 export type LogoutRequest = z.infer<typeof logoutRequestSchema>;
 
 /* --------------------------------------------------------------------- */
@@ -447,16 +435,12 @@ export type EmailVerificationParams = z.infer<
 >;
 
 /**
- * `POST /api/users/me/email/verification` body. The endpoint is
- * authenticated via the *refresh token* (not the access token)
- * because an unactivated user has a refresh token but cannot redeem
- * it for an access token until they are activated. The refresh token
- * is sufficient proof of "this is me asking the server to re-email
- * my own address".
+ * `POST /api/users/me/email/verification` has no request body — like
+ * the refresh endpoint, it authenticates via the `rt` httpOnly cookie.
+ * An unactivated user has the cookie but cannot yet obtain an access
+ * token, so the cookie is the only available proof of identity.
  */
-export const resendVerificationRequestSchema = z.object({
-  refreshToken: z.string().min(1),
-});
+export const resendVerificationRequestSchema = z.object({}).strict();
 export type ResendVerificationRequest = z.infer<
   typeof resendVerificationRequestSchema
 >;

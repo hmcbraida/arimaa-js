@@ -32,7 +32,7 @@ import { Button } from "../ui/Button";
 import { AuthLayout } from "./AuthLayout";
 
 export function LoginPendingScreen() {
-  const { state, retryRedeem, cancelSignIn, refreshToken } = useAuth();
+  const { state, retryRedeem, cancelSignIn } = useAuth();
   const navigate = useNavigate();
   const { authApi } = useNetwork();
   const [resending, setResending] = useState(false);
@@ -57,17 +57,9 @@ export function LoginPendingScreen() {
     setResendError(null);
     setResentNotice(false);
     try {
-      // The resend endpoint authenticates via the refresh token
-      // (the one we are stuck on, by definition) — we do not need
-      // an access token to call it.
-      const rt = refreshToken();
-      if (rt === null) {
-        setResendError(
-          "Your sign-in session is missing. Please cancel and start again.",
-        );
-        return;
-      }
-      await authApi.resendVerificationEmail(rt);
+      // The resend endpoint authenticates via the rt cookie — no token
+      // argument needed; the browser sends it automatically.
+      await authApi.resendVerificationEmail();
       setResentNotice(true);
     } catch (err) {
       setResendError(err instanceof Error ? err.message : "Failed to resend");

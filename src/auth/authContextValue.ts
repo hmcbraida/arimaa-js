@@ -13,12 +13,12 @@ import type { RefreshFailureReason, UserProfile } from "../shared/schema";
  * The discriminated state the rest of the SPA observes via
  * `useAuth()`.
  *
- *   - `anonymous`         no refresh token in localStorage; show login screen
- *   - `loading`           we have a refresh token and are checking it now
- *   - `authenticated`     happy path; we have a fresh access token
- *   - `pending`           we have a refresh token but cannot redeem it
- *                         (account-not-activated, account-disabled, …);
- *                         show the special "stuck on login" screen
+ *   - `anonymous`     no cached session; show login screen
+ *   - `loading`       cached user found; checking the `rt` cookie right now
+ *   - `authenticated` happy path; we have a fresh access token
+ *   - `pending`       cookie exists but cannot be redeemed
+ *                     (account-not-activated, account-disabled, …);
+ *                     show the special "stuck on login" screen
  */
 export type AuthState =
   | { kind: "anonymous" }
@@ -52,8 +52,6 @@ export interface AuthContextValue {
   state: AuthState;
   /** Currently-cached access token, or null if none. */
   accessToken(): string | null;
-  /** Currently-persisted refresh token, or null if none. */
-  refreshToken(): string | null;
   /**
    * Re-attempt the refresh-token exchange. Used after the user
    * confirms their email so the screen can transition out of the

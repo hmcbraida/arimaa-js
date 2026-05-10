@@ -29,8 +29,6 @@ import type {
   ListUserSessionsResponse,
   LoginRequest,
   LoginResponse,
-  LogoutRequest,
-  RefreshAccessTokenRequest,
   RefreshAccessTokenResponse,
   RequestPasswordResetRequest,
   SessionListEntry,
@@ -101,6 +99,13 @@ export class FakeNetworkState {
    * a record only so tests that want to assert it received one can.
    */
   lastAccessToken: string | null = null;
+  /**
+   * Simulated httpOnly cookie jar. In a real browser the `rt` cookie
+   * is set by `Set-Cookie` and sent automatically; here we track it
+   * in state so the fake's cookie-auth methods (refresh, logout,
+   * resend-verification) can look up the active session.
+   */
+  cookieJar: string | null = null;
   /** Sequential id counter, used to generate UUIDs deterministically. */
   private nextId = 1;
 
@@ -136,13 +141,15 @@ function userToProfile(u: FakeUser): UserProfile {
 
 /**
  * Issue a fresh refresh + (maybe) access token bundle.
+ *
+ * The refresh token is written to `state.cookieJar` to simulate the
+ * httpOnly `Set-Cookie` that the real server emits. The response shape
+ * mirrors the real API (no refresh token in body).
  */
 function issueBundle(
   state: FakeNetworkState,
   user: FakeUser,
 ): {
-  refreshToken: string;
-  refreshTokenExpiresAt: string;
   accessToken: string | null;
   accessTokenExpiresAt: string | null;
 } {
@@ -152,23 +159,16 @@ function issueBundle(
     userId: user.id,
     revoked: false,
   });
-  const refreshTokenExpiresAt = new Date(
-    Date.now() + 365 * 24 * 60 * 60 * 1000,
-  ).toISOString();
+  // Simulate the server's Set-Cookie response header.
+  state.cookieJar = refreshToken;
+
   if (!user.isActivated || user.isDisabled) {
-    return {
-      refreshToken,
-      refreshTokenExpiresAt,
-      accessToken: null,
-      accessTokenExpiresAt: null,
-    };
+    return { accessToken: null, accessTokenExpiresAt: null };
   }
   const accessToken = state.newToken("at");
   state.lastAccessToken = accessToken;
   user.lastLogin = new Date().toISOString();
   return {
-    refreshToken,
-    refreshTokenExpiresAt,
     accessToken,
     accessTokenExpiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
   };
@@ -266,12 +266,14 @@ export class FakeAuthApiClient implements AuthApiClient {
     return { user: userToProfile(u), ...bundle };
   }
 
-  async refreshAccessToken(
-    body: RefreshAccessTokenRequest,
-  ): Promise<RefreshAccessTokenResponse> {
-    const row = this.state.refreshTokens.find(
-      (rt) => rt.token === body.refreshToken && !rt.revoked,
-    );
+  async refreshAccessToken(): Promise<RefreshAccessTokenResponse> {
+    const rawToken = this.state.cookieJar;
+    const row =
+      rawToken === null
+        ? undefined
+        : this.state.refreshTokens.find(
+            (rt) => rt.token === rawToken && !rt.revoked,
+          );
     if (row === undefined) return { ok: false, reason: "invalid", user: null };
     const u = this.state.users.find((u) => u.id === row.userId);
     if (u === undefined) return { ok: false, reason: "invalid", user: null };
@@ -296,11 +298,13 @@ export class FakeAuthApiClient implements AuthApiClient {
     };
   }
 
-  async logout(body: LogoutRequest): Promise<EmptyResponse> {
-    const row = this.state.refreshTokens.find(
-      (rt) => rt.token === body.refreshToken,
-    );
-    if (row !== undefined) row.revoked = true;
+  async logout(): Promise<EmptyResponse> {
+    const rawToken = this.state.cookieJar;
+    if (rawToken !== null) {
+      const row = this.state.refreshTokens.find((rt) => rt.token === rawToken);
+      if (row !== undefined) row.revoked = true;
+    }
+    this.state.cookieJar = null;
     return {};
   }
 
@@ -325,10 +329,14 @@ export class FakeAuthApiClient implements AuthApiClient {
     return {};
   }
 
-  async resendVerificationEmail(refreshToken: string): Promise<EmptyResponse> {
-    const row = this.state.refreshTokens.find(
-      (rt) => rt.token === refreshToken && !rt.revoked,
-    );
+  async resendVerificationEmail(): Promise<EmptyResponse> {
+    const rawToken = this.state.cookieJar;
+    const row =
+      rawToken === null
+        ? undefined
+        : this.state.refreshTokens.find(
+            (rt) => rt.token === rawToken && !rt.revoked,
+          );
     if (row === undefined) {
       throw new ApiError(401, "Invalid refresh token", "invalid-token");
     }

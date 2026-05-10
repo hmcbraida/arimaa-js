@@ -17,6 +17,7 @@
     "format": "biome check --write ."
   },
   "dependencies": {
+    "@fastify/cookie": "^11.0.2",
     "@fastify/cors": "^11.2.0",
     "@fastify/websocket": "^11.2.0",
     "@tanstack/react-router": "^1.169.2",

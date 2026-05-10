@@ -19,8 +19,6 @@ import {
   type EmptyResponse,
   type LoginRequest,
   type LoginResponse,
-  type LogoutRequest,
-  type RefreshAccessTokenRequest,
   type RefreshAccessTokenResponse,
   type RequestPasswordResetRequest,
   type UserProfile,
@@ -41,19 +39,23 @@ import { parseOrThrow } from "./api";
  * lives in the auth context.
  */
 export interface AuthApiClient {
-  /** Register a new user. */
+  /** Register a new user. The server sets the `rt` cookie in response. */
   registerUser(body: CreateUserRequest): Promise<CreateUserResponse>;
 
-  /** Username/email + password login. */
+  /** Username/email + password login. The server sets the `rt` cookie. */
   login(body: LoginRequest): Promise<LoginResponse>;
 
-  /** Exchange a refresh token for an access token. */
-  refreshAccessToken(
-    body: RefreshAccessTokenRequest,
-  ): Promise<RefreshAccessTokenResponse>;
+  /**
+   * Exchange the `rt` cookie for an access token. The cookie is sent
+   * automatically by the browser — no token argument needed.
+   */
+  refreshAccessToken(): Promise<RefreshAccessTokenResponse>;
 
-  /** Revoke a refresh token (logout). Idempotent. */
-  logout(body: LogoutRequest): Promise<EmptyResponse>;
+  /**
+   * Revoke the `rt` cookie session (logout). Idempotent. The server
+   * clears the cookie in its response.
+   */
+  logout(): Promise<EmptyResponse>;
 
   /** Fetch the authenticated user's profile. */
   getProfile(accessToken: string): Promise<UserProfile>;
@@ -62,11 +64,10 @@ export interface AuthApiClient {
   deleteAccount(accessToken: string): Promise<EmptyResponse>;
 
   /**
-   * Trigger or re-trigger a verification email. Authenticated via
-   * the *refresh* token (passed in the body) because an unactivated
-   * user has a refresh token but no access token.
+   * Trigger or re-trigger a verification email. Authenticated via the
+   * `rt` cookie — an unactivated user has a cookie but no access token.
    */
-  resendVerificationEmail(refreshToken: string): Promise<EmptyResponse>;
+  resendVerificationEmail(): Promise<EmptyResponse>;
 
   /** Confirm an email-verification token. */
   confirmEmail(token: string): Promise<EmptyResponse>;
@@ -96,6 +97,7 @@ export class HttpAuthApiClient implements AuthApiClient {
     const response = await fetch(`${this.baseUrl}/api/users`, {
       method: "POST",
       headers: { "content-type": "application/json" },
+      credentials: "include",
       body: JSON.stringify(body),
     });
     return parseOrThrow(response, createUserResponseSchema);
@@ -105,32 +107,29 @@ export class HttpAuthApiClient implements AuthApiClient {
     const response = await fetch(`${this.baseUrl}/api/auth/login-sessions`, {
       method: "POST",
       headers: { "content-type": "application/json" },
+      credentials: "include",
       body: JSON.stringify(body),
     });
     return parseOrThrow(response, loginResponseSchema);
   }
 
-  async refreshAccessToken(
-    body: RefreshAccessTokenRequest,
-  ): Promise<RefreshAccessTokenResponse> {
+  async refreshAccessToken(): Promise<RefreshAccessTokenResponse> {
     const response = await fetch(
       `${this.baseUrl}/api/auth/login-sessions/current/refresh-tokens`,
       {
         method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(body),
+        credentials: "include",
       },
     );
     return parseOrThrow(response, refreshAccessTokenResponseSchema);
   }
 
-  async logout(body: LogoutRequest): Promise<EmptyResponse> {
+  async logout(): Promise<EmptyResponse> {
     const response = await fetch(
       `${this.baseUrl}/api/auth/login-sessions/current`,
       {
         method: "DELETE",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(body),
+        credentials: "include",
       },
     );
     return parseOrThrow(response, emptyResponseSchema);
@@ -139,6 +138,7 @@ export class HttpAuthApiClient implements AuthApiClient {
   async getProfile(accessToken: string): Promise<UserProfile> {
     const response = await fetch(`${this.baseUrl}/api/users/me`, {
       headers: { authorization: `Bearer ${accessToken}` },
+      credentials: "include",
     });
     return parseOrThrow(response, userProfileSchema);
   }
@@ -147,17 +147,17 @@ export class HttpAuthApiClient implements AuthApiClient {
     const response = await fetch(`${this.baseUrl}/api/users/me`, {
       method: "DELETE",
       headers: { authorization: `Bearer ${accessToken}` },
+      credentials: "include",
     });
     return parseOrThrow(response, emptyResponseSchema);
   }
 
-  async resendVerificationEmail(refreshToken: string): Promise<EmptyResponse> {
+  async resendVerificationEmail(): Promise<EmptyResponse> {
     const response = await fetch(
       `${this.baseUrl}/api/users/me/email/verification`,
       {
         method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ refreshToken }),
+        credentials: "include",
       },
     );
     return parseOrThrow(response, emptyResponseSchema);

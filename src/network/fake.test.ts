@@ -22,8 +22,8 @@ import { ApiError } from "./api";
 import { buildFakeNetwork } from "./fake";
 
 describe("FakeAuthApiClient", () => {
-  it("registers a user and yields a refresh token without an access token", async () => {
-    const { authApi } = buildFakeNetwork();
+  it("registers a user and sets the rt cookie without an access token", async () => {
+    const { authApi, state } = buildFakeNetwork();
     const bundle = await authApi.registerUser({
       username: "alice",
       emailAddress: "alice@example.test",
@@ -31,7 +31,9 @@ describe("FakeAuthApiClient", () => {
     });
     expect(bundle.user.username).toBe("alice");
     expect(bundle.user.isActivated).toBe(false);
-    expect(bundle.refreshToken.length).toBeGreaterThan(0);
+    // The refresh token is in the simulated cookie jar, not the response body.
+    expect(state.cookieJar).not.toBeNull();
+    expect((state.cookieJar ?? "").length).toBeGreaterThan(0);
     expect(bundle.accessToken).toBeNull();
   });
 
@@ -57,14 +59,13 @@ describe("FakeAuthApiClient", () => {
 
   it("returns reason=account-not-activated when redeeming an unactivated user", async () => {
     const { authApi } = buildFakeNetwork();
-    const reg = await authApi.registerUser({
+    await authApi.registerUser({
       username: "u1",
       emailAddress: "u1@a.test",
       password: "supersecure",
     });
-    const result = await authApi.refreshAccessToken({
-      refreshToken: reg.refreshToken,
-    });
+    // The rt cookie was set by registerUser; refreshAccessToken reads from the cookie jar.
+    const result = await authApi.refreshAccessToken();
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.reason).toBe("account-not-activated");
   });
@@ -76,9 +77,9 @@ describe("FakeAuthApiClient", () => {
       emailAddress: "u2@a.test",
       password: "supersecure",
     });
-    // The resend endpoint authenticates via the refresh token (the
-    // unactivated user has one of those but no access token).
-    await authApi.resendVerificationEmail(reg.refreshToken);
+    // The resend endpoint authenticates via the rt cookie (the
+    // unactivated user has a cookie but no access token).
+    await authApi.resendVerificationEmail();
     const email = state.emails[state.emails.length - 1];
     if (email?.token === undefined) throw new Error("no verification token");
     await authApi.confirmEmail(email.token);
@@ -88,14 +89,14 @@ describe("FakeAuthApiClient", () => {
 
   it("rotates the password and revokes refresh tokens on reset completion", async () => {
     const { authApi, state } = buildFakeNetwork();
-    const reg = await authApi.registerUser({
+    const registered = await authApi.registerUser({
       username: "u3",
       emailAddress: "u3@a.test",
       password: "supersecure",
     });
     // Activate so refresh-token revocation actually has something to
     // matter against.
-    const u = state.users.find((u) => u.id === reg.user.id);
+    const u = state.users.find((u) => u.id === registered.user.id);
     if (u !== undefined) u.isActivated = true;
 
     await authApi.requestPasswordReset({ emailAddress: "u3@a.test" });
@@ -105,9 +106,8 @@ describe("FakeAuthApiClient", () => {
       newPassword: "completelyNewPwd",
     });
 
-    const exchange = await authApi.refreshAccessToken({
-      refreshToken: reg.refreshToken,
-    });
+    // The cookie jar still holds the original (now revoked) token.
+    const exchange = await authApi.refreshAccessToken();
     expect(exchange.ok).toBe(false);
     if (!exchange.ok) expect(exchange.reason).toBe("invalid");
 

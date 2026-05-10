@@ -13,6 +13,7 @@
  * zod type provider, error handler) and wires each route module in.
  */
 
+import cookiePlugin from "@fastify/cookie";
 import corsPlugin from "@fastify/cors";
 import websocketPlugin from "@fastify/websocket";
 import Fastify, { type FastifyInstance } from "fastify";
@@ -63,6 +64,8 @@ export function buildServer(deps: ServerDependencies): FastifyInstance {
     tokenSigner: deps.tokenSigner,
     publicBaseUrl: deps.publicBaseUrl,
     now: deps.now ?? (() => new Date()),
+    // Secure flag follows the origin scheme: dev uses http, prod uses https.
+    secureCookies: deps.publicBaseUrl.startsWith("https:"),
   };
 
   const app = Fastify({ logger: false }).withTypeProvider<ZodTypeProvider>();
@@ -77,6 +80,9 @@ export function buildServer(deps: ServerDependencies): FastifyInstance {
    * is never engaged.
    */
   app.register(corsPlugin, { origin: true, credentials: true });
+  // Cookie plugin must be registered before route modules so that
+  // `request.cookies` and `reply.setCookie` are available.
+  app.register(cookiePlugin);
   app.register(websocketPlugin);
 
   /**

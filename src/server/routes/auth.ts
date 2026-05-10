@@ -24,8 +24,6 @@ import {
   errorResponseSchema,
   loginRequestSchema,
   loginResponseSchema,
-  logoutRequestSchema,
-  refreshAccessTokenRequestSchema,
   refreshAccessTokenResponseSchema,
 } from "../../shared/schema";
 import {
@@ -36,6 +34,24 @@ import {
 import { verifyPassword } from "../auth/passwords";
 import { hashToken } from "../auth/tokens";
 import type { RouteDeps } from "./types";
+
+/** Name of the httpOnly cookie that carries the long-lived refresh token. */
+const RT_COOKIE = "rt";
+
+/**
+ * Cookie options shared by every Set-Cookie call that writes the
+ * refresh token. The `expires` field is set per-call since it is
+ * token-specific.
+ */
+function rtCookieOptions(secureCookies: boolean, expiresAt: Date) {
+  return {
+    httpOnly: true,
+    secure: secureCookies,
+    sameSite: "lax" as const,
+    path: "/",
+    expires: expiresAt,
+  };
+}
 
 export function registerAuthRoutes(
   app: FastifyInstance,
@@ -95,10 +111,13 @@ export function registerAuthRoutes(
         now,
       );
 
+      reply.setCookie(
+        RT_COOKIE,
+        refresh.refreshToken,
+        rtCookieOptions(deps.secureCookies, refresh.expiresAt),
+      );
       return {
         user: userRecordToProfile(user),
-        refreshToken: refresh.refreshToken,
-        refreshTokenExpiresAt: refresh.expiresAt.toISOString(),
         accessToken: access?.accessToken ?? null,
         accessTokenExpiresAt: access?.expiresAt.toISOString() ?? null,
       };
@@ -112,7 +131,6 @@ export function registerAuthRoutes(
     "/api/auth/login-sessions/current/refresh-tokens",
     {
       schema: {
-        body: refreshAccessTokenRequestSchema,
         response: {
           200: refreshAccessTokenResponseSchema,
         },
@@ -120,7 +138,11 @@ export function registerAuthRoutes(
     },
     async (request) => {
       const now = deps.now();
-      const tokenHash = hashToken(request.body.refreshToken);
+      const rawToken = request.cookies[RT_COOKIE];
+      if (rawToken === undefined) {
+        return { ok: false as const, reason: "invalid" as const, user: null };
+      }
+      const tokenHash = hashToken(rawToken);
       const tokenRow = await deps.store.refreshTokens.findActiveByHash(
         tokenHash,
         now,
@@ -183,22 +205,27 @@ export function registerAuthRoutes(
     "/api/auth/login-sessions/current",
     {
       schema: {
-        body: logoutRequestSchema,
         response: {
           200: emptyResponseSchema,
         },
       },
     },
-    async (request) => {
+    async (request, reply) => {
       const now = deps.now();
-      const tokenHash = hashToken(request.body.refreshToken);
-      const row = await deps.store.refreshTokens.findActiveByHash(
-        tokenHash,
-        now,
-      );
-      if (row !== null) {
-        await deps.store.refreshTokens.revoke(row.id, now);
+      const rawToken = request.cookies[RT_COOKIE];
+      if (rawToken !== undefined) {
+        const tokenHash = hashToken(rawToken);
+        const row = await deps.store.refreshTokens.findActiveByHash(
+          tokenHash,
+          now,
+        );
+        if (row !== null) {
+          await deps.store.refreshTokens.revoke(row.id, now);
+        }
       }
+      // Clear the cookie regardless of whether the token was valid.
+      // Logout is idempotent — clicking it twice should always succeed.
+      reply.clearCookie(RT_COOKIE, { path: "/" });
       return {};
     },
   );

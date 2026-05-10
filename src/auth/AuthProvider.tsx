@@ -1,28 +1,32 @@
 /**
- * AuthProvider — manages refresh-token storage, access-token issuance,
- * and the public `useAuth()` hook surface.
+ * AuthProvider — manages access-token issuance and the public
+ * `useAuth()` hook surface.
  *
- * The provider holds three pieces of state:
+ * The refresh token lives exclusively in the `rt` httpOnly cookie set
+ * by the server. JavaScript never reads or writes it — the browser
+ * includes it automatically on every qualifying request.
  *
- *   - The persisted refresh token (read from `AuthStorage` on mount;
- *     written back on login / logout).
- *   - The cached access token plus its expiry (in-memory only).
+ * The provider holds two pieces of in-memory state:
+ *
+ *   - The cached access token plus its expiry (never persisted).
  *   - A discriminated `AuthState` published to consumers.
  *
- * On mount we attempt to redeem any persisted refresh token for an
- * access token. The result drives the initial `AuthState`:
+ * Additionally, `localStorage` caches the last-known user profile so
+ * the navbar can render instantly on a cold page load while the silent
+ * access-token refresh is in flight.
+ *
+ * On mount the provider checks whether a cached user profile exists in
+ * `localStorage`. If so, it fires a silent refresh (the browser sends
+ * the `rt` cookie automatically). The result drives `AuthState`:
  *
  *   - Server returns `ok: true`  → state = `authenticated`.
- *   - Server returns `ok: false` → state = `pending` (the "stuck on
- *                                  login" screen).
- *   - No refresh token persisted → state = `anonymous`.
+ *   - Server returns `ok: false, reason: "invalid"` → state = `anonymous`
+ *                                  (no valid cookie; wipe the cache).
+ *   - Server returns `ok: false, reason: …` → state = `pending`.
+ *   - No cached user profile → state = `anonymous` immediately.
  *
- * After the initial redeem, the provider sets a timer to refresh the
- * access token a minute before its expiry. The minute-of-buffer is
- * conservative; tests can override timing by mocking the relevant
- * setTimeout calls — but the real-world consequence of a brief outage
- * is a single 401 followed by an automatic refresh, which is
- * acceptable.
+ * After the initial redeem, a timer refreshes the access token a
+ * minute before its expiry, keeping the session alive without polling.
  */
 
 import {
@@ -62,88 +66,63 @@ export function AuthProvider({ api, storage, children }: AuthProviderProps) {
     const persisted = storage.read();
     return persisted === null ? { kind: "anonymous" } : { kind: "loading" };
   });
-  /**
-   * Refresh token currently held by the provider. Mirrors what is in
-   * `storage`, kept in a ref so the refresh-timer effect can read the
-   * latest value without re-running on every state change.
-   */
-  const refreshTokenRef = useRef<string | null>(null);
   const accessTokenRef = useRef<string | null>(null);
   const accessTokenExpiryRef = useRef<number | null>(null);
 
-  /** Persist the new auth blob to storage. Centralised here so we
-   * cannot forget to call it after a login / register. */
+  /** Cache the user profile in localStorage so the navbar can render
+   *  immediately on the next cold load. */
   const persistAuth = useCallback(
-    (args: {
-      user: UserProfile;
-      refreshToken: string;
-      refreshTokenExpiresAt: string;
-    }) => {
-      storage.write({
-        version: 1,
-        refreshToken: args.refreshToken,
-        refreshTokenExpiresAt: args.refreshTokenExpiresAt,
-        user: args.user,
-      });
-      refreshTokenRef.current = args.refreshToken;
+    (user: UserProfile) => {
+      storage.write(user);
     },
     [storage],
   );
 
-  /** Clear all in-memory and persisted credentials. */
+  /** Clear the in-memory access token and the localStorage cache.
+   *  The `rt` cookie is cleared server-side on logout. */
   const wipeAuth = useCallback(() => {
     storage.clear();
-    refreshTokenRef.current = null;
     accessTokenRef.current = null;
     accessTokenExpiryRef.current = null;
   }, [storage]);
 
   /**
-   * Try to exchange the stored refresh token for an access token. If
-   * the exchange returns `ok: false` we transition to the `pending`
-   * state so the UI can show the login-pending screen. If the refresh
-   * token itself is invalid (revoked, expired, unknown), we wipe it
-   * and go anonymous.
+   * Fire a silent access-token refresh. The browser sends the `rt`
+   * cookie automatically. If the server returns `ok: false, reason:
+   * "invalid"` (no valid cookie, expired, revoked) we wipe the local
+   * cache and go anonymous. Other failure reasons transition to the
+   * "pending" screen. A network error is treated as anonymous so an
+   * offline user is not locked out.
    */
-  const redeemRefreshToken = useCallback(
-    async (refreshToken: string): Promise<AuthState> => {
-      try {
-        const result = await api.refreshAccessToken({ refreshToken });
-        if (result.ok) {
-          accessTokenRef.current = result.accessToken;
-          accessTokenExpiryRef.current = Date.parse(
-            result.accessTokenExpiresAt,
-          );
-          // Update the persisted user blob with whatever the server
-          // just returned. The refresh token itself does not change.
-          const persisted = storage.read();
-          if (persisted !== null) {
-            storage.write({ ...persisted, user: result.user });
-          }
-          return {
-            kind: "authenticated",
-            user: result.user,
-            accessToken: result.accessToken,
-            accessTokenExpiresAt: result.accessTokenExpiresAt,
-          };
-        }
-        if (result.reason === "invalid") {
-          wipeAuth();
-          return { kind: "anonymous" };
-        }
-        return { kind: "pending", reason: result.reason, user: result.user };
-      } catch {
-        // Network failure: keep the refresh token but treat as
-        // anonymous so the user is not locked out of the offline
-        // tab. They can retry by reloading the page.
+  const redeemRefreshToken = useCallback(async (): Promise<AuthState> => {
+    try {
+      const result = await api.refreshAccessToken();
+      if (result.ok) {
+        accessTokenRef.current = result.accessToken;
+        accessTokenExpiryRef.current = Date.parse(result.accessTokenExpiresAt);
+        persistAuth(result.user);
+        return {
+          kind: "authenticated",
+          user: result.user,
+          accessToken: result.accessToken,
+          accessTokenExpiresAt: result.accessTokenExpiresAt,
+        };
+      }
+      if (result.reason === "invalid") {
+        wipeAuth();
         return { kind: "anonymous" };
       }
-    },
-    [api, storage, wipeAuth],
-  );
+      return { kind: "pending", reason: result.reason, user: result.user };
+    } catch {
+      return { kind: "anonymous" };
+    }
+  }, [api, persistAuth, wipeAuth]);
 
   /**
-   * Initial load. Runs once on mount.
+   * Initial load. Runs once on mount. If there is a cached user
+   * profile in localStorage we assume a cookie may also exist and fire
+   * a silent refresh. Without a cached profile we go straight to
+   * anonymous so first-time visitors see no loading flash.
    */
   useEffect(() => {
     const persisted = storage.read();
@@ -151,9 +130,8 @@ export function AuthProvider({ api, storage, children }: AuthProviderProps) {
       setState({ kind: "anonymous" });
       return;
     }
-    refreshTokenRef.current = persisted.refreshToken;
     void (async () => {
-      const next = await redeemRefreshToken(persisted.refreshToken);
+      const next = await redeemRefreshToken();
       setState(next);
     })();
   }, [storage, redeemRefreshToken]);
@@ -171,10 +149,8 @@ export function AuthProvider({ api, storage, children }: AuthProviderProps) {
       ACCESS_TOKEN_REFRESH_BUFFER_MS;
     const timer = setTimeout(
       () => {
-        const refreshToken = refreshTokenRef.current;
-        if (refreshToken === null) return;
         void (async () => {
-          const next = await redeemRefreshToken(refreshToken);
+          const next = await redeemRefreshToken();
           setState(next);
         })();
       },
@@ -197,16 +173,10 @@ export function AuthProvider({ api, storage, children }: AuthProviderProps) {
   const applyBundle = useCallback(
     (bundle: {
       user: UserProfile;
-      refreshToken: string;
-      refreshTokenExpiresAt: string;
       accessToken: string | null;
       accessTokenExpiresAt: string | null;
     }): AuthState => {
-      persistAuth({
-        user: bundle.user,
-        refreshToken: bundle.refreshToken,
-        refreshTokenExpiresAt: bundle.refreshTokenExpiresAt,
-      });
+      persistAuth(bundle.user);
       if (bundle.accessToken !== null && bundle.accessTokenExpiresAt !== null) {
         accessTokenRef.current = bundle.accessToken;
         accessTokenExpiryRef.current = Date.parse(bundle.accessTokenExpiresAt);
@@ -259,14 +229,12 @@ export function AuthProvider({ api, storage, children }: AuthProviderProps) {
         password: args.password,
       });
       const next = applyBundle(bundle);
-      // Auto-trigger the verification email per spec. The endpoint
-      // is authenticated via the refresh token (not the access
-      // token, which the just-registered unactivated user does not
-      // have). Best-effort — the login-pending screen has a manual
-      // "Resend" button that the user can click if this round-trip
-      // fails for any reason.
+      // Auto-trigger the verification email. The server authenticates
+      // this via the `rt` cookie (the unactivated user has no access
+      // token yet). Best-effort — the login-pending screen has a
+      // manual "Resend" button if the round-trip fails.
       try {
-        await api.resendVerificationEmail(bundle.refreshToken);
+        await api.resendVerificationEmail();
       } catch {
         // Swallow.
       }
@@ -276,13 +244,12 @@ export function AuthProvider({ api, storage, children }: AuthProviderProps) {
   );
 
   const signOut = useCallback(async () => {
-    const refreshToken = refreshTokenRef.current;
-    if (refreshToken !== null) {
-      try {
-        await api.logout({ refreshToken });
-      } catch {
-        // Logout is best-effort: the local clear is what matters.
-      }
+    try {
+      // The server revokes the rt cookie and clears it from the
+      // browser's cookie jar in the response.
+      await api.logout();
+    } catch {
+      // Logout is best-effort: the local clear is what matters.
     }
     wipeAuth();
     setState({ kind: "anonymous" });
@@ -292,13 +259,10 @@ export function AuthProvider({ api, storage, children }: AuthProviderProps) {
     // Same effect as signOut but without surfacing the user via
     // the `signedOut` event log (none exists in this build, but the
     // semantic distinction matters for future analytics).
-    const refreshToken = refreshTokenRef.current;
-    if (refreshToken !== null) {
-      try {
-        await api.logout({ refreshToken });
-      } catch {
-        // Best-effort.
-      }
+    try {
+      await api.logout();
+    } catch {
+      // Best-effort.
     }
     wipeAuth();
     const next: AuthState = { kind: "anonymous" };
@@ -307,42 +271,25 @@ export function AuthProvider({ api, storage, children }: AuthProviderProps) {
   }, [api, wipeAuth]);
 
   const retryRedeem = useCallback(async (): Promise<AuthState> => {
-    const refreshToken = refreshTokenRef.current;
-    if (refreshToken === null) {
-      const next: AuthState = { kind: "anonymous" };
-      setState(next);
-      return next;
-    }
     setState({ kind: "loading" });
-    const next = await redeemRefreshToken(refreshToken);
+    const next = await redeemRefreshToken();
     setState(next);
     return next;
   }, [redeemRefreshToken]);
 
   const accessToken = useCallback(() => accessTokenRef.current, []);
-  const refreshToken = useCallback(() => refreshTokenRef.current, []);
 
   const value: AuthContextValue = useMemo(
     () => ({
       state,
       accessToken,
-      refreshToken,
       retryRedeem,
       signIn,
       register,
       signOut,
       cancelSignIn,
     }),
-    [
-      state,
-      accessToken,
-      refreshToken,
-      retryRedeem,
-      signIn,
-      register,
-      signOut,
-      cancelSignIn,
-    ],
+    [state, accessToken, retryRedeem, signIn, register, signOut, cancelSignIn],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

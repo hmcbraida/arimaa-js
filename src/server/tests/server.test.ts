@@ -77,9 +77,26 @@ function buildTestServer(options?: { now?: () => Date }) {
 }
 
 /**
- * Register a user and return the response bundle. Helper for tests
- * that need a "logged-in" user but do not care about the registration
- * endpoint itself.
+ * Pull the `rt` cookie value out of a Set-Cookie response header.
+ * Used whenever a test needs to pass the refresh-token cookie back to
+ * a subsequent inject call.
+ */
+function extractRtCookie(response: { headers: Record<string, unknown> }): string {
+  const setCookie = response.headers["set-cookie"];
+  const cookies = Array.isArray(setCookie)
+    ? (setCookie as string[])
+    : [typeof setCookie === "string" ? setCookie : ""];
+  for (const c of cookies) {
+    const match = /^rt=([^;]+)/.exec(c);
+    if (match !== null) return match[1];
+  }
+  throw new Error("rt cookie not found in Set-Cookie header");
+}
+
+/**
+ * Register a user and return the response body plus the `rt` cookie
+ * value. Helper for tests that need a "logged-in" user but do not care
+ * about the registration endpoint itself.
  */
 async function registerUser(
   app: ReturnType<typeof buildTestServer>["app"],
@@ -99,36 +116,28 @@ async function registerUser(
     },
   });
   expect(response.statusCode).toBe(200);
-  return createUserResponseSchema.parse(response.json());
+  return {
+    ...createUserResponseSchema.parse(response.json()),
+    rtCookie: extractRtCookie(response),
+  };
 }
 
 /**
- * Activate a freshly-registered user end-to-end: trigger a verification
- * email, pluck the token out of its body, and call the confirmation
- * endpoint. Then exchange the refresh token for an access token. We
- * keep this in one helper because almost every "act as a real user"
- * test needs the access token, not just the refresh token.
+ * Activate a freshly-registered user end-to-end, then exchange the
+ * cookie session for an access token. Returns the access token.
  */
 async function fullyActivate(
   ctx: ReturnType<typeof buildTestServer>,
   bundle: {
     user: { id: string; emailAddress: string };
-    refreshToken: string;
+    rtCookie: string;
   },
 ) {
-  // The registration flow returns a refresh token; the resend
-  // endpoint requires the (currently null) access token but our
-  // helper instead just reaches into the store and inserts a token
-  // because tests that need *only* the activated state should not
-  // depend on the email contents being parseable.
-  //
-  // We do go through the public endpoints in dedicated email-flow
-  // tests below to prove the round-trip works.
   await ctx.store.users.setActivated(bundle.user.id, true);
   const refreshed = await ctx.app.inject({
     method: "POST",
     url: "/api/auth/login-sessions/current/refresh-tokens",
-    payload: { refreshToken: bundle.refreshToken },
+    cookies: { rt: bundle.rtCookie },
   });
   expect(refreshed.statusCode).toBe(200);
   const parsed = refreshAccessTokenResponseSchema.parse(refreshed.json());
@@ -148,7 +157,7 @@ describe("POST /api/users", () => {
     const bundle = await registerUser(app);
     expect(bundle.user.isActivated).toBe(false);
     expect(bundle.user.isDisabled).toBe(false);
-    expect(bundle.refreshToken.length).toBeGreaterThan(40);
+    expect(bundle.rtCookie.length).toBeGreaterThan(40);
     expect(bundle.accessToken).toBeNull();
     await app.close();
   });
@@ -304,7 +313,7 @@ describe("POST /api/auth/login-sessions/current/refresh-tokens", () => {
     const response = await app.inject({
       method: "POST",
       url: "/api/auth/login-sessions/current/refresh-tokens",
-      payload: { refreshToken: reg.refreshToken },
+      cookies: { rt: reg.rtCookie },
     });
     const body = refreshAccessTokenResponseSchema.parse(response.json());
     expect(body.ok).toBe(false);
@@ -324,7 +333,7 @@ describe("POST /api/auth/login-sessions/current/refresh-tokens", () => {
     const response = await ctx.app.inject({
       method: "POST",
       url: "/api/auth/login-sessions/current/refresh-tokens",
-      payload: { refreshToken: reg.refreshToken },
+      cookies: { rt: reg.rtCookie },
     });
     const body = refreshAccessTokenResponseSchema.parse(response.json());
     expect(body.ok).toBe(false);
@@ -342,12 +351,12 @@ describe("POST /api/auth/login-sessions/current/refresh-tokens", () => {
     await ctx.app.inject({
       method: "DELETE",
       url: "/api/auth/login-sessions/current",
-      payload: { refreshToken: reg.refreshToken },
+      cookies: { rt: reg.rtCookie },
     });
     const response = await ctx.app.inject({
       method: "POST",
       url: "/api/auth/login-sessions/current/refresh-tokens",
-      payload: { refreshToken: reg.refreshToken },
+      cookies: { rt: reg.rtCookie },
     });
     const body = refreshAccessTokenResponseSchema.parse(response.json());
     expect(body.ok).toBe(false);
@@ -364,7 +373,7 @@ describe("POST /api/auth/login-sessions/current/refresh-tokens", () => {
     const response = await ctx.app.inject({
       method: "POST",
       url: "/api/auth/login-sessions/current/refresh-tokens",
-      payload: { refreshToken: reg.refreshToken },
+      cookies: { rt: reg.rtCookie },
     });
     const body = refreshAccessTokenResponseSchema.parse(response.json());
     expect(body.ok).toBe(true);
@@ -386,13 +395,13 @@ describe("email verification flow", () => {
       username: "vu",
       emailAddress: "verify@a.test",
     });
-    // The resend endpoint is authenticated via the refresh token
-    // (the registering user has one but no access token, since
+    // The resend endpoint is authenticated via the rt cookie
+    // (the registering user has a cookie but no access token, since
     // they are not yet activated).
     const resend = await ctx.app.inject({
       method: "POST",
       url: "/api/users/me/email/verification",
-      payload: { refreshToken: reg.refreshToken },
+      cookies: { rt: reg.rtCookie },
     });
     expect(resend.statusCode).toBe(200);
     const email = ctx.emailSender.lastTo("verify@a.test");
@@ -506,11 +515,11 @@ describe("password reset flow", () => {
       url: `/api/passwords/resets/${encodeURIComponent(token)}`,
       payload: { newPassword: "completely-new-password" },
     });
-    // The original refresh token should no longer redeem.
+    // The original rt cookie should no longer redeem (token was revoked).
     const exchange = await ctx.app.inject({
       method: "POST",
       url: "/api/auth/login-sessions/current/refresh-tokens",
-      payload: { refreshToken: reg.refreshToken },
+      cookies: { rt: reg.rtCookie },
     });
     const body = refreshAccessTokenResponseSchema.parse(exchange.json());
     expect(body.ok).toBe(false);

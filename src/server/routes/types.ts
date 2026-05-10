@@ -27,4 +27,10 @@ export interface RouteDeps {
   readonly tokenSigner: AuthTokenSigner;
   readonly publicBaseUrl: string;
   readonly now: () => Date;
+  /**
+   * When true, the `refresh_token` cookie is set with `Secure`. Derived from
+   * `publicBaseUrl`; false when the URL is http (local dev), true when https
+   * (production).
+   */
+  readonly secureCookies: boolean;
 }

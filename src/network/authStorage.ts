@@ -1,11 +1,11 @@
 /**
- * AuthStorage — the only kind of state the browser persists between
- * sessions.
+ * AuthStorage — the only browser-side state that survives page reloads.
  *
- * The previous iteration of this module persisted a games list. That
- * list is now retrieved from the server via `GET /api/users/me/sessions`,
- * so the browser only needs to remember the credentials needed to ask
- * the server "who am I?" on a subsequent page load.
+ * The refresh token is now an httpOnly cookie (`rt`) delivered by the
+ * server; JavaScript never touches it. The only thing worth persisting
+ * here is the last-known user profile, which lets us render the navbar
+ * instantly on cold load while the silent access-token refresh is in
+ * flight.
  *
  * Two concrete implementations live here:
  *
@@ -21,18 +21,15 @@ import { userProfileSchema } from "../shared/schema";
 /**
  * The shape of the persisted auth blob.
  *
- * - `refreshToken` is the long-lived opaque token issued at login or
- *   register time.
- * - `refreshTokenExpiresAt` is the ISO timestamp at which the server
- *   will refuse the token. The frontend can hide a clearly-dead token
- *   without round-tripping the server.
  * - `user` is the last-known profile; useful for rendering the navbar
  *   instantly on cold load while the access-token refresh is in flight.
+ *
+ * Version 2 — version 1 included the refresh token in the blob.
+ * The token is now an httpOnly cookie so version 1 blobs are
+ * intentionally treated as absent (stale reads return null).
  */
 const persistedAuthSchema = z.object({
-  version: z.literal(1),
-  refreshToken: z.string(),
-  refreshTokenExpiresAt: z.string(),
+  version: z.literal(2),
   user: userProfileSchema,
 });
 
@@ -40,7 +37,9 @@ export type PersistedAuth = z.infer<typeof persistedAuthSchema>;
 
 export interface AuthStorage {
   read(): PersistedAuth | null;
-  write(value: PersistedAuth): void;
+  /** Persist the user profile cache. Only the profile is stored — the
+   *  refresh token lives in an httpOnly cookie that JS cannot access. */
+  write(user: PersistedAuth["user"]): void;
   clear(): void;
 }
 
@@ -67,11 +66,12 @@ export class LocalStorageAuthStorage implements AuthStorage {
     }
   }
 
-  write(value: PersistedAuth): void {
+  write(user: PersistedAuth["user"]): void {
     if (typeof window === "undefined" || window.localStorage === undefined) {
       return;
     }
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+    const blob: PersistedAuth = { version: 2, user };
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(blob));
   }
 
   clear(): void {
@@ -96,8 +96,8 @@ export class MemoryAuthStorage implements AuthStorage {
     return this.value;
   }
 
-  write(value: PersistedAuth): void {
-    this.value = value;
+  write(user: PersistedAuth["user"]): void {
+    this.value = { version: 2, user };
   }
 
   clear(): void {

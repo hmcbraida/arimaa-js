@@ -21,7 +21,6 @@ import {
   createUserResponseSchema,
   emptyResponseSchema,
   errorResponseSchema,
-  resendVerificationRequestSchema,
   userProfileSchema,
 } from "../../shared/schema";
 import {
@@ -39,6 +38,19 @@ import {
 import { renderEmailVerification } from "../email/templates";
 import { UserUniquenessError } from "../persistence/store";
 import type { RouteDeps } from "./types";
+
+/** Cookie name shared with the auth-route module. */
+const RT_COOKIE = "rt";
+
+function rtCookieOptions(secureCookies: boolean, expiresAt: Date) {
+  return {
+    httpOnly: true,
+    secure: secureCookies,
+    sameSite: "lax" as const,
+    path: "/",
+    expires: expiresAt,
+  };
+}
 
 /**
  * Body schema for the change-password endpoint. Defined inline here
@@ -135,8 +147,8 @@ export function registerUserRoutes(
       const now = deps.now();
       const refresh = await issueRefreshToken(deps.store, user, now);
       // A freshly-created account is not yet activated, so no access
-      // token is minted here. The client stores the refresh token and
-      // calls the verification flow next.
+      // token is minted here. The refresh token is delivered as a
+      // cookie so the client can call the resend-verification endpoint.
       const access = await tryIssueAccessToken(
         deps.store,
         deps.tokenSigner,
@@ -144,10 +156,13 @@ export function registerUserRoutes(
         now,
       );
 
+      reply.setCookie(
+        RT_COOKIE,
+        refresh.refreshToken,
+        rtCookieOptions(deps.secureCookies, refresh.expiresAt),
+      );
       return {
         user: userRecordToProfile(user),
-        refreshToken: refresh.refreshToken,
-        refreshTokenExpiresAt: refresh.expiresAt.toISOString(),
         accessToken: access?.accessToken ?? null,
         accessTokenExpiresAt: access?.expiresAt.toISOString() ?? null,
       };
@@ -217,7 +232,6 @@ export function registerUserRoutes(
     "/api/users/me/email/verification",
     {
       schema: {
-        body: resendVerificationRequestSchema,
         response: {
           200: emptyResponseSchema,
           401: errorResponseSchema,
@@ -226,8 +240,17 @@ export function registerUserRoutes(
     },
     async (request, reply) => {
       const now = deps.now();
+      const rawToken = request.cookies[RT_COOKIE];
+      if (rawToken === undefined) {
+        return reply.status(401).send({
+          statusCode: 401,
+          error: "Unauthorized",
+          message: "Missing session cookie",
+          code: "invalid-token",
+        });
+      }
       const tokenRow = await deps.store.refreshTokens.findActiveByHash(
-        hashToken(request.body.refreshToken),
+        hashToken(rawToken),
         now,
       );
       if (tokenRow === null) {
