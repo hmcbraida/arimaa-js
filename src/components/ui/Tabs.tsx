@@ -18,7 +18,7 @@ export interface TabDescriptor {
 interface TabsProps {
   readonly tabs: readonly TabDescriptor[];
   /** The id of the tab currently active. */
-  readonly activeId: string;
+  readonly activeId: string | null;
   /** Invoked with the new tab's id when the user clicks one. */
   readonly onChange: (id: string) => void;
   /** Content of the active tab. */

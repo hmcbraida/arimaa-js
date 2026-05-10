@@ -15,12 +15,6 @@
  *   rolls the preview back so the engine and server stay in sync.
  * - A waiting banner that shows the accept code when the player is
  *   the creator and the opponent has not yet joined.
- *
- * Credentials are no longer in localStorage. The viewer's role is
- * derived by comparing the auth-context user id against the snapshot's
- * `participants.gold.userId` / `participants.silver.userId`. Move
- * submission uses the auth context's access token, not a per-session
- * secret.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -41,10 +35,6 @@ interface NetworkGameViewProps {
 function gameFromSnapshot(snapshot: SessionSnapshot): ArimaaGame {
   return ArimaaGame.fromTranscript(snapshot.transcript);
 }
-
-// `shouldAdoptSnapshot` lives in `./snapshotAdoption.ts` because the
-// fast-refresh lint rule prefers React component files to export only
-// React components.
 
 export function NetworkGameView({ initialSnapshot }: NetworkGameViewProps) {
   const { gameApi, socket } = useNetwork();
@@ -163,10 +153,6 @@ export function NetworkGameView({ initialSnapshot }: NetworkGameViewProps) {
 
   /**
    * Submit the current preview to the server.
-   *
-   * The bearer credential is now the auth-context access token; the
-   * server cross-references the JWT subject against the session's
-   * gold/silver user ids to pick the right side.
    */
   const onSubmitTurn = useCallback(async () => {
     const at = accessToken();

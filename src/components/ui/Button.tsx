@@ -1,5 +1,5 @@
 /**
- * Reusable button primitive for the Arimaa SPA.
+ * Reusable button primitive.
  *
  * Centralizing button styling here means new screens can compose
  * `<Button variant="primary">…</Button>` without re-typing Tailwind

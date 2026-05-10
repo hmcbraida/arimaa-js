@@ -6,10 +6,6 @@
  * server responds with the eight-digit accept code (which the creator
  * must share with their opponent) and the session id, which we hand
  * back to the parent so it can navigate.
- *
- * The accept code is no longer kept in localStorage — we surface it
- * once at create time, after which the network game view fetches it
- * back from the server snapshot when needed.
  */
 
 import { useState } from "react";

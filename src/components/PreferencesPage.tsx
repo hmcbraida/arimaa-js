@@ -5,10 +5,6 @@
  * editing fields are not yet in scope) plus a Delete Account button
  * which spawns a confirmation modal. On confirmation we call
  * `DELETE /api/users/me` and sign the user out.
- *
- * The preferences page is rendered *inside* the standard tab shell
- * per spec — the user explicitly asked for the tabs to remain visible
- * even though preferences itself is not a tab.
  */
 
 import { useNavigate } from "@tanstack/react-router";
@@ -63,7 +59,7 @@ export function PreferencesPage() {
       <header className="flex flex-col gap-1">
         <h2 className="text-xl text-tn-fg">Preferences</h2>
         <p className="text-sm text-tn-fg-muted">
-          Profile information for {profile.username}.
+          Profile information: {profile.username}.
         </p>
       </header>
       <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-sm">
@@ -109,8 +105,8 @@ export function PreferencesPage() {
       >
         <p className="text-sm text-tn-fg">
           This will permanently delete your Arimaatic account. Your past games
-          remain visible to other players, but ownership of your sides will
-          become anonymous.
+          remain visible to other players, but will no longer be tied to your
+          user.
         </p>
         <p className="text-sm text-tn-fg-muted">
           This action cannot be undone.
