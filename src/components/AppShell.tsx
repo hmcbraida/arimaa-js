@@ -9,13 +9,6 @@
  *
  * The auth-area routes (`/login`, `/register`, …) skip this shell
  * entirely — they wrap themselves in the smaller `AuthLayout` instead.
- *
- * The tab strip's "active" state is derived from the current path:
- * `/offline` lights the Offline tab; everything else lights Games. The
- * Preferences page deliberately does not switch a tab — it lives
- * outside the games/offline split — so we keep the Games tab
- * highlighted for it (closest reasonable answer) so the strip is not
- * left in a confusing "neither" state.
  */
 
 import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
@@ -26,7 +19,14 @@ export function AppShell() {
   const navigate = useNavigate();
   const path = useRouterState({ select: (state) => state.location.pathname });
 
-  const activeTab = path === "/offline" ? "offline" : "games";
+  // We pass this in the indicate the currently active tab.
+  // It's based on the route passed in from the tanstack router state
+  let activeTab: string | null = null;
+  if (path === "/offline") {
+    activeTab = "offline";
+  } else if (path === "/") {
+    activeTab = "games";
+  }
 
   return (
     <main className="min-h-screen bg-tn-bg px-6 py-8 text-tn-fg">
