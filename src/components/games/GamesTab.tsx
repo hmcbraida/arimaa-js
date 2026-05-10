@@ -1,5 +1,5 @@
 /**
- * Games tab — the default view of the SPA.
+ * Games tab -- the default view of the SPA.
  *
  * Two visual modes:
  *

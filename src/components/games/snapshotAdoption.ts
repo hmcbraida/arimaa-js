@@ -15,7 +15,7 @@
  *
  *   - Comparing status is necessary because the `accepted` event
  *     transitions status from `"waiting"` to a side-to-move value
- *     while the transcript is still the initial setup — no moves
+ *     while the transcript is still the initial setup -- no moves
  *     have been played yet. Without this second check the "waiting
  *     for opponent" banner would persist even after the opponent
  *     joins.

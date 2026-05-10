@@ -72,7 +72,7 @@ function renderScreen(
 
   // Build a router with all the paths the auth screens link to so
   // that `<Link to="/login">` etc. type-check and resolve. Each
-  // child route just renders an empty placeholder — the test
+  // child route just renders an empty placeholder -- the test
   // never navigates into them.
   const root = createRootRoute({ component: () => <Outlet /> });
   const home = createRoute({
@@ -221,7 +221,7 @@ describe("LoginScreen", () => {
 /* Login navigation                                                      */
 /* --------------------------------------------------------------------- */
 
-describe("LoginScreen — post-submit navigation", () => {
+describe("LoginScreen -- post-submit navigation", () => {
   it("navigates to /login-pending when signing in to an unactivated account", async () => {
     const fake = buildFakeNetwork();
     fake.state.users.push({
@@ -275,7 +275,7 @@ describe("LoginScreen — post-submit navigation", () => {
 /* Register navigation                                                   */
 /* --------------------------------------------------------------------- */
 
-describe("RegisterScreen — post-submit navigation", () => {
+describe("RegisterScreen -- post-submit navigation", () => {
   it("navigates to /login-pending after creating a new account", async () => {
     renderScreen(RegisterScreen);
     const user = userEvent.setup();

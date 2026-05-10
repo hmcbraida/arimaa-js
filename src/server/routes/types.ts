@@ -10,7 +10,7 @@
  *
  * `publicBaseUrl` is the absolute URL the frontend lives at. The
  * server uses it to build email verification and password-reset links
- * — emails need to be self-contained (a relative URL would not work
+ * -- emails need to be self-contained (a relative URL would not work
  * inside an inbox), and the server is the only component that knows
  * the routing scheme without ambiguity.
  */

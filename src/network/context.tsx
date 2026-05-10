@@ -3,7 +3,7 @@
  * React context tree.
  *
  * The context object itself lives in `contextValue.ts` so this file
- * exports only a component — that satisfies the React Fast Refresh
+ * exports only a component -- that satisfies the React Fast Refresh
  * "only export components" rule and keeps hot reload behaviour
  * predictable during local development.
  */

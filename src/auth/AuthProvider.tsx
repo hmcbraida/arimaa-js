@@ -1,9 +1,9 @@
 /**
- * AuthProvider — manages access-token issuance and the public
+ * AuthProvider -- manages access-token issuance and the public
  * `useAuth()` hook surface.
  *
  * The refresh token lives exclusively in the `rt` httpOnly cookie set
- * by the server. JavaScript never reads or writes it — the browser
+ * by the server. JavaScript never reads or writes it -- the browser
  * includes it automatically on every qualifying request.
  *
  * The provider holds two pieces of in-memory state:
@@ -189,7 +189,7 @@ export function AuthProvider({ api, storage, children }: AuthProviderProps) {
         setState(next);
         return next;
       }
-      // No access token issued — the account is unactivated or
+      // No access token issued -- the account is unactivated or
       // disabled. The `register` path always lands here for a
       // fresh user; the login path may land here too for an
       // unverified or disabled account.
@@ -231,7 +231,7 @@ export function AuthProvider({ api, storage, children }: AuthProviderProps) {
       const next = applyBundle(bundle);
       // Auto-trigger the verification email. The server authenticates
       // this via the `rt` cookie (the unactivated user has no access
-      // token yet). Best-effort — the login-pending screen has a
+      // token yet). Best-effort -- the login-pending screen has a
       // manual "Resend" button if the round-trip fails.
       try {
         await api.resendVerificationEmail();

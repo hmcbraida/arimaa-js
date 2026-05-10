@@ -1,5 +1,5 @@
 /**
- * About modal — project info and asset attribution.
+ * About modal -- project info and asset attribution.
  */
 
 import { Modal } from "./ui/Modal";

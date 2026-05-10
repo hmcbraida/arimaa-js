@@ -36,7 +36,7 @@ notifications (opponent moves, game completion).
 ## Canonical state: the transcript
 
 The server never stores a compiled board state. The only mutable
-column in the `sessions` table is `transcript` — the Arimaa engine's
+column in the `sessions` table is `transcript` -- the Arimaa engine's
 own text representation of the game from the opening position to the
 latest committed move.
 
@@ -114,16 +114,16 @@ hands it back on the next call to advance pagination.
 
 Two token flavours circulate in the system:
 
-- **Refresh tokens** — long-lived (1 year) opaque random strings,
+- **Refresh tokens** -- long-lived (1 year) opaque random strings,
   stored as SHA-256 hashes in `refresh_tokens`. Revocable. Held in
   the browser's localStorage as plaintext.
 
-- **Access tokens** — short-lived (15 minutes) signed JWTs (HS256,
+- **Access tokens** -- short-lived (15 minutes) signed JWTs (HS256,
   `JWT_SECRET` env var). Not stored server-side. Held in
   in-memory React state.
 
 Refresh tokens are not JWTs specifically so they can be revoked
-individually — for password change, password reset, and account
+individually -- for password change, password reset, and account
 deletion. Access tokens are JWTs specifically so they need no DB
 lookup on every request.
 
@@ -210,7 +210,7 @@ exercise the same observable semantics as production.
 Drizzle-kit generates SQL migration files in `src/server/migrations/`.
 The production server entrypoint (`src/server/index.ts`) calls
 `runMigrations(databaseUrl)` before binding the HTTP port. The
-migration runner is idempotent — Drizzle records applied migrations
+migration runner is idempotent -- Drizzle records applied migrations
 in a `__drizzle_migrations` table and skips anything already present —
 so it is safe to call on every startup including hot reloads.
 
@@ -231,7 +231,7 @@ route subscribes to the relevant subject on connection and
 drains/unsubscribes when the client disconnects.
 
 NATS core (no JetStream) is used because persistence is not needed
-— the transcript is the durable record; the event bus is only for
+-- the transcript is the durable record; the event bus is only for
 live push delivery. Any WebSocket client that was offline during a
 move will catch up by receiving the transcript from the REST API on
 reconnect.
@@ -246,14 +246,14 @@ WebSocket delivery without any NATS infrastructure.
 `src/server/email/sender.ts` defines `EmailSender` and ships three
 implementations:
 
-- `SmtpEmailSender` — production. Wraps nodemailer's SMTP transport.
+- `SmtpEmailSender` -- production. Wraps nodemailer's SMTP transport.
   Configured via `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`,
   `SMTP_FROM`, `SMTP_SECURE` environment variables.
-- `ConsoleEmailSender` — dev fallback. Prints the rendered email to
+- `ConsoleEmailSender` -- dev fallback. Prints the rendered email to
   stdout. The composition root selects this automatically when
   `SMTP_HOST` is unset, so a fresh checkout works without an MTA
   (the verification URL is just printed to the API container's logs).
-- `RecordingEmailSender` — tests. Keeps the emails in memory so
+- `RecordingEmailSender` -- tests. Keeps the emails in memory so
   tests can extract verification / reset tokens from the rendered
   body and complete the round-trip.
 
@@ -290,11 +290,11 @@ so test composition (in-memory fakes) and production composition
 [TanStack Router](https://tanstack.com/router) with code-based route
 configuration. The route tree is split into two layouts:
 
-- The **app area** (under `AppShell`) — `/`, `/offline`,
+- The **app area** (under `AppShell`) -- `/`, `/offline`,
   `/sessions/:id`, `/preferences`. Renders the heading, the user
   menu, and the tab strip. The Preferences page is in the shell but
   is not a tab itself.
-- The **auth area** (no `AppShell`) — `/login`, `/register`,
+- The **auth area** (no `AppShell`) -- `/login`, `/register`,
   `/forgot-password`, `/reset-password`, `/verify-email`,
   `/login-pending`. These render with the smaller `AuthLayout` chrome.
 
@@ -302,18 +302,18 @@ configuration. The route tree is split into two layouts:
 
 `src/network/` is split into two API clients plus storage:
 
-- `authApi.ts` — `AuthApiClient` interface + `HttpAuthApiClient`.
-- `gameApi.ts` — `GameSessionApiClient` interface + `HttpGameSessionApiClient`.
-- `authStorage.ts` — `AuthStorage` interface + `LocalStorageAuthStorage`
+- `authApi.ts` -- `AuthApiClient` interface + `HttpAuthApiClient`.
+- `gameApi.ts` -- `GameSessionApiClient` interface + `HttpGameSessionApiClient`.
+- `authStorage.ts` -- `AuthStorage` interface + `LocalStorageAuthStorage`
   (and a `MemoryAuthStorage` for tests).
-- `socket.ts` — `SessionSocket` interface + `WebSocketSessionSocket`.
-- `fake.ts` — in-memory `FakeAuthApiClient` and `FakeGameSessionApiClient`
+- `socket.ts` -- `SessionSocket` interface + `WebSocketSessionSocket`.
+- `fake.ts` -- in-memory `FakeAuthApiClient` and `FakeGameSessionApiClient`
   that share state for component tests.
 
 The `NetworkProvider` exposes the three transport adapters
 (`authApi`, `gameApi`, `socket`) on a React context. Auth-flow state
 (current user, access token, sign-in pending state) lives in a
-separate `AuthProvider` keyed off `useAuth()` — see
+separate `AuthProvider` keyed off `useAuth()` -- see
 [docs/auth.md](./auth.md) for that state machine.
 
 ### LocalStorage scope
@@ -372,7 +372,7 @@ The flow for submitting a turn:
 The WebSocket-based snapshot adoption logic
 (`shouldAdoptSnapshot` in `snapshotAdoption.ts`) only reseeds the
 engine when either the transcript or the status differs from the
-current snapshot — so duplicate "echo" events for the user's own
+current snapshot -- so duplicate "echo" events for the user's own
 move don't trash the in-progress preview.
 
 ---

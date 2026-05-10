@@ -36,7 +36,7 @@ services:
 
   nats:
     image: nats:2.11-alpine
-    # No volume — NATS core (which is what we use) does not persist
+    # No volume -- NATS core (which is what we use) does not persist
     # subjects across restarts, and that is fine for the live event
     # fan-out use case.
 
@@ -54,7 +54,7 @@ services:
       # development; production must override this with a long random
       # string from a secret store.
       JWT_SECRET: "dev-only-jwt-secret-please-override-in-production"
-      # The public URL the SPA is reachable at — embedded in
+      # The public URL the SPA is reachable at -- embedded in
       # verification and password-reset emails.
       PUBLIC_BASE_URL: "http://localhost:8080"
       # SMTP variables are intentionally unset so the API falls back

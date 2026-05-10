@@ -2,7 +2,7 @@
  * Reusable modal dialog primitive.
  *
  * Renders a centered card over a translucent backdrop. Closes on
- * backdrop click and on the Escape key — both standard interactions
+ * backdrop click and on the Escape key -- both standard interactions
  * users expect from any web-app dialog.
  *
  * The component is intentionally controlled: callers manage the
@@ -46,7 +46,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
 
   /**
    * Backdrop click handler. We only close if the click was on the
-   * backdrop itself, not bubbled up from a child — this keeps clicks
+   * backdrop itself, not bubbled up from a child -- this keeps clicks
    * inside the dialog (selecting text, pressing buttons) from
    * accidentally dismissing it.
    */
@@ -74,7 +74,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
     <div
       // role + aria-modal communicates intent to assistive technology.
       // We use a div + role rather than the native <dialog> element so
-      // we can control visibility entirely from React state — <dialog>
+      // we can control visibility entirely from React state -- <dialog>
       // requires imperative `showModal()` / `close()` calls that fight
       // the rest of the tree's data-flow style.
       // biome-ignore lint/a11y/useSemanticElements: see comment above

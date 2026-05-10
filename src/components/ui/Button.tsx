@@ -26,7 +26,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   readonly children: ReactNode;
 }
 
-// Colors for the flat (zero-blur) shadow — top rim + bottom drop
+// Colors for the flat (zero-blur) shadow -- top rim + bottom drop
 const SHADOW_PRIMARY = "0 -1px 0 0 rgba(255,255,255,0.12), 0 3px 0 0 #3d59a1";
 const SHADOW_SECONDARY = "0 -1px 0 0 rgba(255,255,255,0.04), 0 3px 0 0 #0f1017";
 

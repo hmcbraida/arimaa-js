@@ -52,7 +52,7 @@ export function registerPasswordRoutes(
   const typed = app.withTypeProvider<ZodTypeProvider>();
 
   /* ----------------------------------------------------------------- */
-  /* POST /api/passwords/resets — request a reset                       */
+  /* POST /api/passwords/resets -- request a reset                       */
   /* ----------------------------------------------------------------- */
   typed.post(
     "/api/passwords/resets",
@@ -102,7 +102,7 @@ export function registerPasswordRoutes(
   );
 
   /* ----------------------------------------------------------------- */
-  /* POST /api/passwords/resets/{token} — complete the reset             */
+  /* POST /api/passwords/resets/{token} -- complete the reset             */
   /* ----------------------------------------------------------------- */
   typed.post(
     "/api/passwords/resets/:token",

@@ -5,7 +5,7 @@
  * The factory is deliberately written to take its dependencies as
  * arguments rather than reaching out to module-level singletons. That
  * way, the production entrypoint (`index.ts`) composes Postgres +
- * NATS + SMTP while the test suite composes the in-memory fakes — and
+ * NATS + SMTP while the test suite composes the in-memory fakes -- and
  * we can write the route handlers exactly once.
  *
  * The route bodies themselves live under `src/server/routes/`; this
@@ -46,7 +46,7 @@ export interface ServerDependencies {
   readonly tokenSigner: AuthTokenSigner;
   /**
    * Public-facing base URL of the SPA. Used to build verification and
-   * password-reset links. Trailing slash optional — we trim before
+   * password-reset links. Trailing slash optional -- we trim before
    * appending.
    */
   readonly publicBaseUrl: string;
@@ -95,7 +95,7 @@ export function buildServer(deps: ServerDependencies): FastifyInstance {
 
   /**
    * Convert validation / auth / generic errors to a uniform response
-   * shape — the same as `errorResponseSchema` — so the client
+   * shape -- the same as `errorResponseSchema` -- so the client
    * validator never sees an envelope with extra fields. We special-
    * case our own `AuthError` to surface its `code` field; everything
    * else falls back to the Fastify-default mapping.

@@ -1,5 +1,5 @@
 /**
- * AuthStorage — the only browser-side state that survives page reloads.
+ * AuthStorage -- the only browser-side state that survives page reloads.
  *
  * The refresh token is now an httpOnly cookie (`rt`) delivered by the
  * server; JavaScript never touches it. The only thing worth persisting
@@ -24,7 +24,7 @@ import { protectedUserProfileSchema } from "../shared/schema";
  * - `user` is the last-known profile; useful for rendering the navbar
  *   instantly on cold load while the access-token refresh is in flight.
  *
- * Version 2 — version 1 included the refresh token in the blob.
+ * Version 2 -- version 1 included the refresh token in the blob.
  * The token is now an httpOnly cookie so version 1 blobs are
  * intentionally treated as absent (stale reads return null).
  */
@@ -37,7 +37,7 @@ export type PersistedAuth = z.infer<typeof persistedAuthSchema>;
 
 export interface AuthStorage {
   read(): PersistedAuth | null;
-  /** Persist the user profile cache. Only the profile is stored — the
+  /** Persist the user profile cache. Only the profile is stored -- the
    *  refresh token lives in an httpOnly cookie that JS cannot access. */
   write(user: PersistedAuth["user"]): void;
   clear(): void;

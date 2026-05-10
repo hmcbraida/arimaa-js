@@ -285,7 +285,7 @@ export const passwordSchema = z.string().min(8).max(200);
 
 /**
  * Profile shape for authenticated endpoints (`GET /users/me`, session
- * bundles, etc.). Includes `emailAddress` — do NOT embed this in any
+ * bundles, etc.). Includes `emailAddress` -- do NOT embed this in any
  * publicly-visible API response; use a narrower schema there instead.
  */
 export const protectedUserProfileSchema = z.object({
@@ -389,7 +389,7 @@ export type LoginResponse = z.infer<typeof loginResponseSchema>;
 
 /**
  * `POST /api/auth/login-sessions/current/refresh-tokens` has no request
- * body — the refresh token is read from the `rt` httpOnly cookie which
+ * body -- the refresh token is read from the `rt` httpOnly cookie which
  * the browser sends automatically.
  */
 export const refreshAccessTokenRequestSchema = z.object({}).strict();
@@ -421,7 +421,7 @@ export type RefreshAccessTokenResponse = z.infer<
 >;
 
 /**
- * `DELETE /api/auth/login-sessions/current` has no request body — the
+ * `DELETE /api/auth/login-sessions/current` has no request body -- the
  * refresh token to revoke is read from the `rt` httpOnly cookie.
  * Logout is idempotent.
  */
@@ -443,7 +443,7 @@ export type EmailVerificationParams = z.infer<
 >;
 
 /**
- * `POST /api/users/me/email/verification` has no request body — like
+ * `POST /api/users/me/email/verification` has no request body -- like
  * the refresh endpoint, it authenticates via the `rt` httpOnly cookie.
  * An unactivated user has the cookie but cannot yet obtain an access
  * token, so the cookie is the only available proof of identity.

@@ -12,7 +12,7 @@
  * The route handlers call `requireAccessToken` at the top of any
  * endpoint that needs an authenticated user. We do not register a
  * Fastify-level `preHandler` hook because not every route is
- * authenticated — keeping the gate at the call site makes the
+ * authenticated -- keeping the gate at the call site makes the
  * authentication boundary visible in each handler.
  */
 

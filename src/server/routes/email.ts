@@ -1,7 +1,7 @@
 /**
  * Email-verification confirmation route.
  *
- * - `POST /api/email-verifications/{token}` — consume a verification
+ * - `POST /api/email-verifications/{token}` -- consume a verification
  *   token and mark the matching account as activated.
  *
  * This endpoint is the second half of the email-verification flow.

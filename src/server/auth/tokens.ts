@@ -3,14 +3,14 @@
  *
  * Three flavours of secret pass through this module:
  *
- *   1. **Refresh tokens** — long-lived (1 year), opaque random strings.
+ *   1. **Refresh tokens** -- long-lived (1 year), opaque random strings.
  *      Stored as SHA-256 hashes in the `refresh_tokens` table.
  *
- *   2. **Access tokens** — short-lived (15 minutes) signed JWTs. Not
+ *   2. **Access tokens** -- short-lived (15 minutes) signed JWTs. Not
  *      stored anywhere; the JWT is self-contained and verified on every
  *      request via the shared HMAC secret.
  *
- *   3. **Email-verification / password-reset tokens** — short-lived
+ *   3. **Email-verification / password-reset tokens** -- short-lived
  *      (24 h) opaque random strings. Stored as SHA-256 hashes in
  *      dedicated tables. Single-use.
  *
@@ -33,10 +33,10 @@ import { SignJWT, errors as joseErrors, jwtVerify } from "jose";
  */
 export const REFRESH_TOKEN_TTL_MS = 365 * 24 * 60 * 60 * 1000;
 
-/** Access-token lifetime — fifteen minutes. */
+/** Access-token lifetime -- fifteen minutes. */
 export const ACCESS_TOKEN_TTL_MS = 15 * 60 * 1000;
 
-/** Email-verification and password-reset token lifetime — 24 hours. */
+/** Email-verification and password-reset token lifetime -- 24 hours. */
 export const EMAIL_VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
 export const PASSWORD_RESET_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -53,7 +53,7 @@ const OPAQUE_TOKEN_BYTE_LENGTH = 32;
 
 /**
  * Generate a fresh opaque token. Used for refresh / email-verification
- * / password-reset secrets — anything stored as a SHA-256 hash. Hex
+ * / password-reset secrets -- anything stored as a SHA-256 hash. Hex
  * encoded so the result is URL-safe and trivial to compare.
  */
 export function generateOpaqueToken(): string {
@@ -64,7 +64,7 @@ export function generateOpaqueToken(): string {
  * SHA-256 hash a token for at-rest storage.
  *
  * SHA-256 is appropriate for these tokens because the inputs already
- * have very high entropy (256 bits of `randomBytes`) — we are
+ * have very high entropy (256 bits of `randomBytes`) -- we are
  * defending against database-leak replay, not password-style guessing
  * attacks.
  */

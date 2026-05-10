@@ -1,5 +1,5 @@
 /**
- * `/forgot-password` route — request a password-reset email.
+ * `/forgot-password` route -- request a password-reset email.
  *
  * The endpoint is silent on whether the email exists, so the success
  * message is non-committal: "If an account exists for that address,

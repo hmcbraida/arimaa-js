@@ -83,7 +83,7 @@ export function deriveSessionStatus(
 /**
  * Translate a `UserRecord` (or null) into the participant shape the
  * wire snapshot exposes. We deliberately surface only id and username
- * — never email, never any flag — because spectators of a game can
+ * -- never email, never any flag -- because spectators of a game can
  * read this snapshot.
  */
 export function userRecordToParticipant(

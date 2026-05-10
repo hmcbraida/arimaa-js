@@ -1,5 +1,5 @@
 /**
- * `/register` route — create a new account.
+ * `/register` route -- create a new account.
  *
  * The form posts to `POST /api/users` (via `useAuth().register`),
  * which always issues a refresh token and lands the user in either

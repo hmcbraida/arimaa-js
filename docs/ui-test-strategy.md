@@ -7,7 +7,7 @@ layer, and how to run the suite.
 
 ## Test layers
 
-### 1. Unit tests — `bun test src/`
+### 1. Unit tests -- `bun test src/`
 
 **What they cover**
 
@@ -36,7 +36,7 @@ bun run test
 
 ---
 
-### 2. Browser smoke tests — `tests/ui/app.spec.ts`
+### 2. Browser smoke tests -- `tests/ui/app.spec.ts`
 
 **What they cover**
 
@@ -63,11 +63,11 @@ bun run test:ui
 
 ---
 
-### 3. Responsive layout checks — `tests/ui/responsive.spec.ts`
+### 3. Responsive layout checks -- `tests/ui/responsive.spec.ts`
 
 **Purpose**
 
-The game board is an 8 × 8 interactive grid — the hardest element to keep
+The game board is an 8 × 8 interactive grid -- the hardest element to keep
 well-proportioned across screen sizes. These tests encode three constraints
 that, together, guarantee a usable layout at every configured viewport:
 
@@ -94,7 +94,7 @@ call covers the full matrix:
 |---|---|---|
 | `chromium` | 1280 × 720 | Desktop baseline |
 | `pixel-7` | 412 × 915 | Common Android flagship (portrait) |
-| `pixel-7-landscape` | 915 × 412 | Landscape phone — stresses board height |
+| `pixel-7-landscape` | 915 × 412 | Landscape phone -- stresses board height |
 | `iphone-se` | 375 × 667 | Narrowest mainstream iOS device |
 | `ipad` | 810 × 1080 | Mid-size tablet (portrait) |
 

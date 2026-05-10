@@ -9,7 +9,7 @@
 #   - semver tags (v1.2.3) → 1.2.3, 1.2, 1, latest
 #   - main branch push     → main + short SHA
 #
-# The GITHUB_TOKEN that Actions injects is sufficient for GHCR — no
+# The GITHUB_TOKEN that Actions injects is sufficient for GHCR -- no
 # extra secrets are required as long as the package visibility is set
 # to match the repository.
 

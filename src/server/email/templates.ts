@@ -3,7 +3,7 @@
  *
  * Templates produce both a plaintext and an HTML body. We construct
  * them in code (rather than pulling in a templating engine) because
- * there are only two of them and the logic is simple — anything more
+ * there are only two of them and the logic is simple -- anything more
  * involved would be over-engineered for the current product scope.
  *
  * Each template exports a single function that accepts a typed input
@@ -53,7 +53,7 @@ ${input.verifyUrl}
 If you did not create this account you can ignore this message; the
 link will expire on its own.
 
-— Arimaatic`;
+-- Arimaatic`;
 
   const html = `<!doctype html>
 <html><body style="font-family: sans-serif; line-height: 1.5;">
@@ -61,7 +61,7 @@ link will expire on its own.
 <p>Welcome to Arimaatic! Please confirm your email address by clicking the link below:</p>
 <p><a href="${escapeHtml(input.verifyUrl)}">${escapeHtml(input.verifyUrl)}</a></p>
 <p>If you did not create this account you can ignore this message; the link will expire on its own.</p>
-<p>— Arimaatic</p>
+<p>-- Arimaatic</p>
 </body></html>`;
 
   return {
@@ -96,7 +96,7 @@ ${input.resetUrl}
 If this was not you, you can ignore this message; the link will expire
 on its own and your existing password is unchanged.
 
-— Arimaatic`;
+-- Arimaatic`;
 
   const html = `<!doctype html>
 <html><body style="font-family: sans-serif; line-height: 1.5;">
@@ -104,7 +104,7 @@ on its own and your existing password is unchanged.
 <p>Someone (hopefully you) requested a password reset for your Arimaatic account. To choose a new password, click the link below:</p>
 <p><a href="${escapeHtml(input.resetUrl)}">${escapeHtml(input.resetUrl)}</a></p>
 <p>If this was not you, you can ignore this message; the link will expire on its own and your existing password is unchanged.</p>
-<p>— Arimaatic</p>
+<p>-- Arimaatic</p>
 </body></html>`;
 
   return {

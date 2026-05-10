@@ -17,7 +17,7 @@ frontend makes the user experience match.
 
 The refresh token is opaque (not a JWT) specifically so it can be
 revoked individually. Revocation is what makes "log out everywhere"
-and "invalidate all sessions on password reset" simple — both are a
+and "invalidate all sessions on password reset" simple -- both are a
 single DB update.
 
 The access token is a JWT specifically so it does NOT need a DB
@@ -48,7 +48,7 @@ sessions are themselves resources you create (`POST`) and revoke
 
 Every authenticated endpoint takes its credential as `Authorization:
 Bearer <accessToken>`, except for `/api/users/me/email/verification`
-(which takes the *refresh* token in the body — see below) and the
+(which takes the *refresh* token in the body -- see below) and the
 `/auth/login-sessions/current/refresh-tokens` endpoint (which takes
 the refresh token in the body, since it is being redeemed rather
 than presented for authorisation).
@@ -91,10 +91,10 @@ The browser tracks one of four states, derived from the auth context:
 The `pending` state is the "stuck on login" screen the spec asked
 for. Two reason codes are surfaced:
 
-- `account-not-activated` — the user has not yet clicked the link in
+- `account-not-activated` -- the user has not yet clicked the link in
   the verification email. The screen offers a Resend button and a
   Try-again button (both work without leaving the page).
-- `account-disabled` — administrative lock. Only Cancel sign-in is
+- `account-disabled` -- administrative lock. Only Cancel sign-in is
   offered.
 
 `account-not-activated` and `account-disabled` are NOT collapsed
@@ -171,7 +171,7 @@ after registration.
 ```
 
 The exchange endpoint always returns 200, with a discriminated
-payload, because the calling state isn't an error per se — it's
+payload, because the calling state isn't an error per se -- it's
 telling the frontend "you have a refresh token but cannot use it
 right now". HTTP 401 is reserved for "the bearer credential I just
 gave you is not valid".
@@ -186,7 +186,7 @@ token issuance, not just any login.
 
 There are two separate flows:
 
-**Change** — authenticated. The user proves they know their current
+**Change** -- authenticated. The user proves they know their current
 password and chooses a new one. We revoke all refresh tokens to
 force a fresh login on every other device.
 
@@ -197,7 +197,7 @@ force a fresh login on every other device.
                                    ← 200 (or 403 if currentPassword wrong)
 ```
 
-**Reset** — anonymous. The user has forgotten their password and
+**Reset** -- anonymous. The user has forgotten their password and
 asks for a one-time link sent to their email. The reset is its own
 resource: you create one (`POST /api/passwords/resets`) then fulfil
 it (`POST /api/passwords/resets/{token}`).

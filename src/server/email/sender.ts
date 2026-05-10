@@ -9,9 +9,9 @@
  *
  * Three implementations live in this module:
  *
- *   - `SmtpEmailSender`     — production. Wraps nodemailer.
- *   - `ConsoleEmailSender`  — dev fallback. Prints the email to stdout.
- *   - `RecordingEmailSender`— tests. Keeps every email in memory so
+ *   - `SmtpEmailSender`     -- production. Wraps nodemailer.
+ *   - `ConsoleEmailSender`  -- dev fallback. Prints the email to stdout.
+ *   - `RecordingEmailSender`-- tests. Keeps every email in memory so
  *                             test code can assert on it.
  *
  * We intentionally model both `text` and `html` as required fields so
@@ -41,7 +41,7 @@ export interface EmailSender {
 }
 
 /* --------------------------------------------------------------------- */
-/* SMTP — production                                                      */
+/* SMTP -- production                                                      */
 /* --------------------------------------------------------------------- */
 
 export interface SmtpEmailSenderConfig {
@@ -82,7 +82,7 @@ export class SmtpEmailSender implements EmailSender {
 }
 
 /* --------------------------------------------------------------------- */
-/* Console — development fallback                                         */
+/* Console -- development fallback                                         */
 /* --------------------------------------------------------------------- */
 
 /**
@@ -114,7 +114,7 @@ export class ConsoleEmailSender implements EmailSender {
 }
 
 /* --------------------------------------------------------------------- */
-/* Recording — tests                                                      */
+/* Recording -- tests                                                      */
 /* --------------------------------------------------------------------- */
 
 /**

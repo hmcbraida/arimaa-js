@@ -3,7 +3,7 @@
  *
  * The login / register / verify-email / reset-password / login-pending
  * routes are rendered *outside* the main tab strip, because the tabs
- * are conceptually navigation between in-app sections — not relevant
+ * are conceptually navigation between in-app sections -- not relevant
  * before the user has signed in. This layout provides a minimal
  * heading and a centred card so the screens have consistent framing
  * without each one having to reproduce the same Tailwind incantations.

@@ -314,7 +314,7 @@ export class ArimaaGame {
    * listVisibleLegalSteps for the current engine state.
    *
    * Skips the re-validation in executeStep because the step is known to be
-   * current — use this from UI paths where the step comes directly from a
+   * current -- use this from UI paths where the step comes directly from a
    * freshly computed legal-step list and no intervening mutation has occurred.
    * Use executeStep when you cannot guarantee freshness (e.g. replayed
    * transcripts, tests constructing synthetic steps).
@@ -908,7 +908,7 @@ export class ArimaaGame {
 
   /**
    * Applies a movement step directly onto this engine, runs fn, then
-   * unconditionally reverses every mutation — even if fn throws.
+   * unconditionally reverses every mutation -- even if fn throws.
    *
    * The try/finally makes it structurally impossible to leave the engine in a
    * corrupt intermediate state: callers cannot forget the undo, and exceptions
@@ -917,7 +917,7 @@ export class ArimaaGame {
    * Re-entrancy note: hasLegalCompletion calls this recursively, and
    * evaluateStatusAfterTurn (called mid-applyFinishTurnStep) also calls
    * hasLegalCompletion. Because every apply is matched by a corresponding undo
-   * before returning, the nesting is safe — the board is always restored to the
+   * before returning, the nesting is safe -- the board is always restored to the
    * state the outer caller expects.
    */
   private withSearchStep<T>(step: MovementStep, fn: () => T): T {
@@ -950,7 +950,7 @@ export class ArimaaGame {
     const prevPendingAction = this.pendingAction;
     const prevStepsTaken = this.stepsTakenThisTurn;
 
-    // Move piece; no clone needed — the piece object is treated as immutable.
+    // Move piece; no clone needed -- the piece object is treated as immutable.
     setSquare(this.board, step.from, null);
     setSquare(this.board, step.to, piece);
 
@@ -976,7 +976,7 @@ export class ArimaaGame {
    * Capture restoration always precedes piece restoration. If the moved piece
    * itself landed on a trap and was captured, the captures loop puts it back
    * on step.to, and the subsequent two setSquare calls then move it to step.from
-   * and clear step.to — arriving at the correct pre-move state in all cases.
+   * and clear step.to -- arriving at the correct pre-move state in all cases.
    */
   private undoMovementStepInPlace(undo: SearchUndo): void {
     this.stepsTakenThisTurn = undo.prevStepsTaken;

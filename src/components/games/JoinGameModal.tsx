@@ -3,7 +3,7 @@
  * entering the 8-digit accept code shared by the creator.
  *
  * On success the parent component navigates to `/sessions/:id`. We do
- * not persist anything client-side — the user's relationship to the
+ * not persist anything client-side -- the user's relationship to the
  * session is now stored server-side in the gold/silver user-id
  * columns, and the games list will pick it up on next reload.
  */

@@ -59,7 +59,7 @@ export async function issueRefreshToken(
 /**
  * Try to mint an access token for the given user.
  *
- * Returns `null` if the user is not activated or is disabled — the
+ * Returns `null` if the user is not activated or is disabled -- the
  * caller turns that into a structured "stuck on login" payload for the
  * frontend. Otherwise returns the JWT plus its expiry, and updates
  * `lastLogin` because successful access-token issuance is what we

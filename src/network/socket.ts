@@ -8,7 +8,7 @@
  *
  * Each frame is parsed through the shared `sessionEventSchema` before
  * being delivered to the consumer. Frames that fail validation are
- * dropped silently — a defensive choice so a malformed message can
+ * dropped silently -- a defensive choice so a malformed message can
  * never crash the React tree.
  */
 
@@ -46,7 +46,7 @@ export interface SessionSocket {
  *   - A full HTTP origin such as `"http://api:3001"` (local dev pointing
  *     directly at the API server): the origin is taken from the value and the
  *     path is `/api/ws`.
- *   - An empty string: same-origin `/api/ws` — the default for tests and
+ *   - An empty string: same-origin `/api/ws` -- the default for tests and
  *     simple same-origin deployments.
  */
 export class WebSocketSessionSocket implements SessionSocket {
@@ -73,7 +73,7 @@ export class WebSocketSessionSocket implements SessionSocket {
       if (disposed) return;
       disposed = true;
       socket.removeEventListener("message", onMessage);
-      // Use close(1000, ...) for a normal closure — the server side
+      // Use close(1000, ...) for a normal closure -- the server side
       // simply unsubscribes on close events.
       if (
         socket.readyState === WebSocket.OPEN ||
@@ -88,7 +88,7 @@ export class WebSocketSessionSocket implements SessionSocket {
    * Build the WebSocket URL from `apiBase`.
    *
    * When `apiBase` is an absolute HTTP URL (starts with "http"), derive
-   * the origin from it and use `/api/ws` as the path — this covers the
+   * the origin from it and use `/api/ws` as the path -- this covers the
    * local-dev case where the API runs on a separate port.
    *
    * Otherwise treat `apiBase` as a path prefix on the current origin

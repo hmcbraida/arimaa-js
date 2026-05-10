@@ -2,9 +2,9 @@
  * Runtime database migration runner.
  *
  * Called from the production server entrypoint immediately before binding
- * the HTTP port. The runner is idempotent — Drizzle records applied
+ * the HTTP port. The runner is idempotent -- Drizzle records applied
  * migrations in a `__drizzle_migrations` table and skips anything already
- * present — so calling it on every start, including in development hot
+ * present -- so calling it on every start, including in development hot
  * reloads, is safe.
  *
  * Putting this in its own module (rather than inlining into `index.ts`)

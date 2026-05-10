@@ -1,5 +1,5 @@
 /**
- * `/reset-password` route — destination for the link in the
+ * `/reset-password` route -- destination for the link in the
  * password-reset email. The token comes from `?token=…`.
  *
  * On submit we POST to `/api/passwords/resets/{token}` with the new

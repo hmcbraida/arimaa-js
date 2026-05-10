@@ -1,5 +1,5 @@
 /**
- * `/verify-email` route — terminal page for the link in the
+ * `/verify-email` route -- terminal page for the link in the
  * verification email.
  *
  * The token comes from the query string (`?token=…`); we POST it to

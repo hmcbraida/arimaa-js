@@ -44,7 +44,7 @@ export async function verifyPassword(
   try {
     return await Bun.password.verify(plaintext, encodedHash);
   } catch {
-    // A malformed stored hash should not crash the login route — we
+    // A malformed stored hash should not crash the login route -- we
     // surface it as an authentication failure so the caller cannot
     // distinguish "wrong password" from "corrupt hash".
     return false;

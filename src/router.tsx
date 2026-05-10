@@ -3,14 +3,14 @@
  *
  * The route tree is split across two layouts:
  *
- *   - The **auth area** — `/login`, `/register`, `/forgot-password`,
+ *   - The **auth area** -- `/login`, `/register`, `/forgot-password`,
  *     `/reset-password`, `/verify-email`, `/login-pending`. These
  *     screens render outside the in-app tab strip; they exist as
  *     standalone pages because the tabs are conceptually navigation
  *     between in-app sections, and a not-yet-signed-in user has no
  *     such sections to navigate.
  *
- *   - The **app area** — `/`, `/offline`, `/sessions/:id`,
+ *   - The **app area** -- `/`, `/offline`, `/sessions/:id`,
  *     `/preferences`. These render inside the standard `AppShell`,
  *     which draws the heading, the user menu, and the tab strip
  *     (`/preferences` is not a tab itself but reuses the chrome per

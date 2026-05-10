@@ -16,7 +16,7 @@ import type { SessionEvent } from "../../shared/schema";
 /**
  * The disposer returned by `subscribe`.
  *
- * Calling it must be idempotent — both the websocket close path and the
+ * Calling it must be idempotent -- both the websocket close path and the
  * server's graceful shutdown handler may invoke it.
  */
 export type Unsubscribe = () => void | Promise<void>;
@@ -59,7 +59,7 @@ export interface EventBus {
   /**
    * Tear down the bus connection on graceful shutdown.
    *
-   * Both implementations are idempotent — calling close after close is a
+   * Both implementations are idempotent -- calling close after close is a
    * no-op rather than an error.
    */
   close(): Promise<void>;

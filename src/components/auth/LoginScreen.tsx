@@ -1,12 +1,12 @@
 /**
- * `/login` route — username/email + password sign-in.
+ * `/login` route -- username/email + password sign-in.
  *
  * On success we land in one of three places:
  *
- *   - `authenticated` — navigate to the games tab.
- *   - `pending`       — the account is unactivated or disabled;
+ *   - `authenticated` -- navigate to the games tab.
+ *   - `pending`       -- the account is unactivated or disabled;
  *                       navigate to the login-pending screen.
- *   - error           — invalid credentials, etc. Render the error
+ *   - error           -- invalid credentials, etc. Render the error
  *                       above the form.
  *
  * Navigation happens directly in the submit handler from the `AuthState`

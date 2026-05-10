@@ -1,5 +1,5 @@
 /**
- * The login menu in the page chrome — replaces the previous "About"
+ * The login menu in the page chrome -- replaces the previous "About"
  * button.
  *
  * Two visual modes, controlled by auth state:

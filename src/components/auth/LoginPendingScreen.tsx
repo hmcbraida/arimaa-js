@@ -1,21 +1,21 @@
 /**
- * `/login-pending` route — the user has a refresh token but the
+ * `/login-pending` route -- the user has a refresh token but the
  * server refuses to mint an access token because the account is in a
  * temporary or terminal not-allowed state.
  *
  * Two cases are handled:
  *
- *   - `account-not-activated` — the user has not clicked the link in
+ *   - `account-not-activated` -- the user has not clicked the link in
  *     their verification email yet. We show the email address and a
  *     "Resend" button. After the user clicks the link in the email,
  *     they can return here and click "Try again" to retry the redeem
  *     and progress to the games tab.
  *
- *   - `account-disabled` — administrative lock. We show a message and
+ *   - `account-disabled` -- administrative lock. We show a message and
  *     only the "Cancel sign-in" button (which clears the token).
  *
  * The "Cancel sign-in" button is the abort the user requested in the
- * spec — clicking it logs them out and drops them back at `/login`.
+ * spec -- clicking it logs them out and drops them back at `/login`.
  *
  * Navigation happens directly in action handlers from the `AuthState`
  * returned by `retryRedeem` / `cancelSignIn`.  The route guard
@@ -57,7 +57,7 @@ export function LoginPendingScreen() {
     setResendError(null);
     setResentNotice(false);
     try {
-      // The resend endpoint authenticates via the rt cookie — no token
+      // The resend endpoint authenticates via the rt cookie -- no token
       // argument needed; the browser sends it automatically.
       await authApi.resendVerificationEmail();
       setResentNotice(true);

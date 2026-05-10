@@ -6,7 +6,7 @@
 #
 # Stage 2 ("runtime") starts from `nginx:alpine` and copies just the
 # build output and our custom config. The runtime image is therefore
-# tiny and contains no Node, no Bun, and no source — only static
+# tiny and contains no Node, no Bun, and no source -- only static
 # assets and nginx itself.
 
 FROM oven/bun:1.3.5-alpine AS build

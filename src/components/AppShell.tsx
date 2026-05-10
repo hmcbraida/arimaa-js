@@ -1,5 +1,5 @@
 /**
- * Application shell — the page chrome rendered by every in-app route.
+ * Application shell -- the page chrome rendered by every in-app route.
  *
  * Owns:
  * - the heading
@@ -8,7 +8,7 @@
  * - the `<Outlet />` slot where the active route's component renders
  *
  * The auth-area routes (`/login`, `/register`, …) skip this shell
- * entirely — they wrap themselves in the smaller `AuthLayout` instead.
+ * entirely -- they wrap themselves in the smaller `AuthLayout` instead.
  */
 
 import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router";

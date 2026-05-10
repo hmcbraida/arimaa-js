@@ -14,7 +14,7 @@
  * 8. Wire up graceful shutdown.
  *
  * Nothing in this file is required by the route handlers themselves
- * — `server.ts` is independently testable; this module only exists so
+ * -- `server.ts` is independently testable; this module only exists so
  * the production process knows how to assemble the server with real
  * infrastructure.
  */
