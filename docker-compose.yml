@@ -31,6 +31,8 @@ services:
       retries: 30
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
 
   nats:
     image: nats:2.11-alpine
@@ -47,6 +49,18 @@ services:
       NATS_URL: nats://nats:4222
       PORT: "3001"
       HOST: 0.0.0.0
+      # JWT signing key for access tokens. The compose file ships an
+      # obviously non-secret default suitable only for local
+      # development; production must override this with a long random
+      # string from a secret store.
+      JWT_SECRET: "dev-only-jwt-secret-please-override-in-production"
+      # The public URL the SPA is reachable at — embedded in
+      # verification and password-reset emails.
+      PUBLIC_BASE_URL: "http://localhost:8080"
+      # SMTP variables are intentionally unset so the API falls back
+      # to the console email sender. Production deployments should
+      # set SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS / SMTP_FROM
+      # / SMTP_SECURE here.
     depends_on:
       postgres:
         # Wait for the database to pass the healthcheck above so the

@@ -11,17 +11,22 @@ layer, and how to run the suite.
 
 **What they cover**
 
-The game engine and server logic. Bun's built-in test runner executes every
-`*.test.ts` file under `src/`.
+The game engine, the server (HTTP + WebSocket), the in-memory network
+fakes, and the auth-area React screens. Bun's built-in test runner
+executes every `*.test.ts` and `*.test.tsx` file under `src/`.
 
 | File | Focus |
 |---|---|
 | `src/game/ArimaaGame.test.ts` | Movement, freezing, push/pull mechanics, notation |
-| `src/server/tests/server.test.ts` | HTTP and WebSocket server behaviour |
+| `src/server/tests/server.test.ts` | HTTP and WebSocket server behaviour, auth flows, sessions, account lifecycle |
+| `src/network/fake.test.ts` | Behavioural correctness of the in-memory `FakeAuthApiClient` and `FakeGameSessionApiClient` |
+| `src/components/games/NetworkGameView.test.ts` | Snapshot-adoption predicate (`shouldAdoptSnapshot`) edge cases |
+| `src/components/auth/AuthFlow.test.tsx` | Component-level tests: register, login, password-reset request, against the fakes |
 
-Unit tests verify that the rules engine produces correct results for every edge
-case (rabbits reaching goal rank, trap removal, step-count enforcement, etc.).
-They do not touch the browser.
+Unit tests verify rules-engine correctness, server-side auth invariants,
+and the auth-area component flows end-to-end at the React layer. They
+do not touch a real browser; component tests use happy-dom (registered
+via the bun preload `src/test-preload.ts` configured in `bunfig.toml`).
 
 **Run**
 
@@ -126,10 +131,17 @@ bunx playwright test tests/ui/responsive.spec.ts
 ## Adding new checks
 
 - **New game-logic rule** → add a case to `ArimaaGame.test.ts`.
-- **New UI interaction** → add a test to `app.spec.ts`. Use `data-testid`
-  attributes on board squares and `aria` roles on everything else.
+- **New API endpoint or auth-flow change** → add a case to
+  `src/server/tests/server.test.ts` and (if the route is also called
+  from the SPA) keep `src/network/fake.ts` in sync.
+- **New auth-area screen** → render it through `renderScreen` in
+  `src/components/auth/AuthFlow.test.tsx` and assert against the
+  fake state.
+- **New offline UI interaction** → add a test to `app.spec.ts`. Use
+  `data-testid` attributes on board squares and `aria` roles on
+  everything else.
 - **New responsive constraint** → add a helper or test case to
   `responsive.spec.ts`. Keep assertions in the helper functions
   (`assertNoHorizontalOverflow`, `assertWithinViewportWidth`,
-  `assertTouchTarget`) so the failure message names the element and the
-  expectation, not just the raw numbers.
+  `assertTouchTarget`) so the failure message names the element and
+  the expectation, not just the raw numbers.

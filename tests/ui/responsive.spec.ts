@@ -63,10 +63,13 @@ async function assertWithinViewportWidth(
     box?.x,
     `${label}: left edge must be within viewport`,
   ).toBeGreaterThanOrEqual(0);
+  // The earlier expects already proved both shapes are non-null; the
+  // non-null assertions here are just for the type checker.
   expect(
-    box?.x + box?.width,
+    (box as { x: number; width: number }).x +
+      (box as { x: number; width: number }).width,
     `${label}: right edge must not exceed viewport width`,
-  ).toBeLessThanOrEqual(viewport?.width);
+  ).toBeLessThanOrEqual((viewport as { width: number }).width);
 }
 
 /**
@@ -130,7 +133,10 @@ test.describe("Responsive layout — offline game page", () => {
         box?.x,
         `${sq} must not overlap ${prevLabel} (right edge at ${prevRight.toFixed(1)}px)`,
       ).toBeGreaterThanOrEqual(prevRight - 1); // 1 px tolerance for sub-pixel rounding
-      prevRight = box?.x + box?.width;
+      // Cast guarded by the prior `expect(box, ...).not.toBeNull()`.
+      prevRight =
+        (box as { x: number; width: number }).x +
+        (box as { x: number; width: number }).width;
       prevLabel = sq;
     }
   });

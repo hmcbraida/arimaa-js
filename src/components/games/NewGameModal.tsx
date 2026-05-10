@@ -1,17 +1,19 @@
 /**
- * Modal that lets the user start a new game.
+ * Modal that lets the authenticated user start a new game.
  *
- * The user chooses a side (gold or silver). On submit we call
- * `api.createSession`, persist the resulting credentials in
- * localStorage, and navigate to the new session's URL.
+ * The user chooses a side. On submit we call
+ * `gameApi.createSession` with their access token; on success the
+ * server responds with the eight-digit accept code (which the creator
+ * must share with their opponent) and the session id, which we hand
+ * back to the parent so it can navigate.
  *
- * The component takes a `onCreated` callback rather than calling
- * `useNavigate` directly so it stays decoupled from the router; the
- * games tab wires the navigation.
+ * The accept code is no longer kept in localStorage — we surface it
+ * once at create time, after which the network game view fetches it
+ * back from the server snapshot when needed.
  */
 
 import { useState } from "react";
-import { upsertStoredGame } from "../../network/storage";
+import { useAuth } from "../../auth/useAuth";
 import { useNetwork } from "../../network/useNetwork";
 import type { Side } from "../../shared/schema";
 import { Button } from "../ui/Button";
@@ -24,27 +26,22 @@ interface NewGameModalProps {
 }
 
 export function NewGameModal({ open, onClose, onCreated }: NewGameModalProps) {
-  const { api } = useNetwork();
+  const { gameApi } = useNetwork();
+  const { accessToken } = useAuth();
   const [side, setSide] = useState<Side>("gold");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const onSubmit = async () => {
+    const at = accessToken();
+    if (at === null) {
+      setError("You must be signed in to create a game.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
-      const created = await api.createSession(side);
-      // Persist the secret so later visits to the same URL still
-      // recognise this browser as a player. Persist the accept token
-      // so the games table can show "share this code" to the creator.
-      upsertStoredGame({
-        sessionId: created.sessionId,
-        role: "player",
-        side: created.side,
-        secretToken: created.secretToken,
-        acceptToken: created.acceptToken,
-        addedAt: new Date().toISOString(),
-      });
+      const created = await gameApi.createSession({ accessToken: at, side });
       onCreated(created.sessionId);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create game");
@@ -59,11 +56,7 @@ export function NewGameModal({ open, onClose, onCreated }: NewGameModalProps) {
         Choose your side. You will get an 8-digit code to share with your
         opponent so they can join.
       </p>
-      <fieldset
-        className="flex gap-3"
-        // Disabled while in-flight so double-submits are impossible.
-        disabled={submitting}
-      >
+      <fieldset className="flex gap-3" disabled={submitting}>
         <legend className="sr-only">Side</legend>
         {(["gold", "silver"] as const).map((option) => (
           <label

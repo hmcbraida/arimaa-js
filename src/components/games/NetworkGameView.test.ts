@@ -12,7 +12,7 @@
 
 import { describe, expect, it } from "bun:test";
 import type { SessionSnapshot } from "../../shared/schema";
-import { shouldAdoptSnapshot } from "./NetworkGameView";
+import { shouldAdoptSnapshot } from "./snapshotAdoption";
 
 /** Minimal valid snapshot; individual tests override only the fields they care about. */
 function makeSnapshot(overrides: Partial<SessionSnapshot>): SessionSnapshot {
@@ -24,6 +24,7 @@ function makeSnapshot(overrides: Partial<SessionSnapshot>): SessionSnapshot {
     moveLog: [],
     winner: null,
     reason: null,
+    participants: { gold: null, silver: null },
     createdAt: "2024-01-01T00:00:00.000Z",
     updatedAt: "2024-01-01T00:00:00.000Z",
     ...overrides,

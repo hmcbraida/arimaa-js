@@ -1,3 +1,7 @@
+/**
+ * About modal — project info and asset attribution.
+ */
+
 import { Modal } from "./ui/Modal";
 
 interface AboutModalProps {
@@ -5,7 +9,6 @@ interface AboutModalProps {
   readonly onClose: () => void;
 }
 
-/** About dialog — project info and asset attribution. */
 export function AboutModal({ open, onClose }: AboutModalProps) {
   return (
     <Modal open={open} onClose={onClose} title="Arimaatic">
