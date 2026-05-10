@@ -33,7 +33,7 @@ export function AppShell() {
       <div className="mx-auto flex max-w-7xl flex-col gap-8">
         <header className="flex items-center justify-between border-b border-tn-border pb-5">
           <h1 className="text-3xl text-tn-fg">
-            Arimaatic -- an Arimaa application
+            Arimaatic -- Play Arimaa online
           </h1>
           <UserMenu />
         </header>
