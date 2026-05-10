@@ -11,7 +11,7 @@
  * a single synchronous step, so two concurrent callers cannot
  * interleave inside one method.
  *
- * Production code must never import this module — it is referenced
+ * Production code must never import this module --  it is referenced
  * only from tests.
  */
 
@@ -45,7 +45,7 @@ export class InMemorySessionStore implements SessionStore {
     readonly id: string;
     readonly side: Side;
     readonly creatorUserId: string;
-    readonly acceptTokenHash: string;
+    readonly acceptToken: string;
     readonly transcript: string;
     readonly now: Date;
   }): Promise<SessionRecord> {
@@ -58,7 +58,7 @@ export class InMemorySessionStore implements SessionStore {
       transcript: input.transcript,
       goldUserId: input.side === Side.Gold ? input.creatorUserId : null,
       silverUserId: input.side === Side.Silver ? input.creatorUserId : null,
-      acceptTokenHash: input.acceptTokenHash,
+      acceptToken: input.acceptToken,
       // The accept token, when redeemed, will install the joining
       // user as the *opposite* side from the creator.
       pendingSide: input.side === Side.Gold ? Side.Silver : Side.Gold,
@@ -74,13 +74,13 @@ export class InMemorySessionStore implements SessionStore {
   }
 
   async consumeAcceptToken(input: {
-    readonly acceptTokenHash: string;
+    readonly acceptToken: string;
     readonly write: SessionAcceptWrite;
     readonly now: Date;
   }): Promise<SessionRecord | null> {
     // Linear scan is fine for a test fake; production indexes the column.
     for (const record of this.sessions.values()) {
-      if (record.acceptTokenHash !== input.acceptTokenHash) continue;
+      if (record.acceptToken !== input.acceptToken) continue;
       if (record.pendingSide === null) continue;
 
       const updated: SessionRecord = {
@@ -95,8 +95,8 @@ export class InMemorySessionStore implements SessionStore {
           record.pendingSide === Side.Silver
             ? input.write.userId
             : record.silverUserId,
-        // Clearing the hash is what makes the token single-use.
-        acceptTokenHash: null,
+        // Clearing the token is what makes it single-use.
+        acceptToken: null,
         pendingSide: null,
         updatedAt: input.now,
       };
@@ -437,7 +437,7 @@ export class InMemoryPasswordResetTokenStore
  * stores are all in-memory.
  *
  * The composite also models the foreign-key cascade behaviour the
- * Postgres schema declares — without this wiring the test fakes would
+ * Postgres schema declares --  without this wiring the test fakes would
  * diverge from production semantics on account deletion. Specifically:
  *
  *   - `users.deleteUser` cascades to refresh / verification / reset
@@ -497,7 +497,7 @@ export function buildInMemoryDataStore(): DataStore {
  * Internal helper: walk the in-memory session store and null out any
  * gold/silver FK matching the deleted user. Lives here (rather than
  * as a method on `InMemorySessionStore`) so it does not become part of
- * the abstract interface — the production Postgres store delegates
+ * the abstract interface --  the production Postgres store delegates
  * this to the database via the FK constraint.
  */
 function sessionStoreClearUserFks(

@@ -50,7 +50,7 @@ export interface SessionRecord {
   readonly transcript: string;
   readonly goldUserId: string | null;
   readonly silverUserId: string | null;
-  readonly acceptTokenHash: string | null;
+  readonly acceptToken: string | null;
   /** Which side the still-active accept token will install when redeemed. */
   readonly pendingSide: Side | null;
   readonly createdAt: Date;
@@ -85,14 +85,14 @@ export interface SessionStore {
    * Insert a brand-new session row.
    *
    * The route layer generates the id and decides which side belongs to
-   * the creator based on `?side=`. The accept token hash is the
-   * SHA-256 of the eight-digit code shared with the invitee.
+   * the creator based on `?side=`. The accept token is the eight-digit
+   * code shared with the invitee, stored as plaintext.
    */
   createSession(input: {
     readonly id: string;
     readonly side: Side;
     readonly creatorUserId: string;
-    readonly acceptTokenHash: string;
+    readonly acceptToken: string;
     readonly transcript: string;
     readonly now: Date;
   }): Promise<SessionRecord>;
@@ -101,8 +101,8 @@ export interface SessionStore {
   getById(id: string): Promise<SessionRecord | null>;
 
   /**
-   * Atomically consume an accept token by hash and assign the joining
-   * user to the appropriate side.
+   * Atomically consume an accept token and assign the joining user to
+   * the appropriate side.
    *
    * Returns the updated record if the accept token matched and was
    * still active, or null otherwise. Implementations must guarantee
@@ -110,7 +110,7 @@ export interface SessionStore {
    * token must result in exactly one success.
    */
   consumeAcceptToken(input: {
-    readonly acceptTokenHash: string;
+    readonly acceptToken: string;
     readonly write: SessionAcceptWrite;
     readonly now: Date;
   }): Promise<SessionRecord | null>;
@@ -209,7 +209,7 @@ export interface UserStore {
 
   /**
    * Mark the account as disabled. There is no public endpoint to call
-   * this — it's reserved for future administrative tooling — but the
+   * this --  it's reserved for future administrative tooling --  but the
    * column is consulted on every refresh-token exchange so the auth
    * routes need a way to flip it. Tests use this to exercise the
    * "account-disabled" branch.

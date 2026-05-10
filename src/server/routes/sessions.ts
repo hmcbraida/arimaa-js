@@ -1,11 +1,12 @@
 /**
  * Game-session routes.
  *
- * - `POST /api/sessions`                  create a new game (auth)
- * - `GET  /api/sessions/:id`              public snapshot
- * - `POST /api/session-accept`            join a game by accept code (auth)
- * - `POST /api/sessions/:id/moves`        submit a move (auth)
- * - `GET  /api/users/me/sessions`         list the caller's games (auth)
+ * - `POST /api/sessions`                       create a new game (auth)
+ * - `GET  /api/sessions/:id`                   public snapshot
+ * - `GET  /api/sessions/:id/accept-token`      accept token for participants (auth)
+ * - `POST /api/session-accept`                 join a game by accept code (auth)
+ * - `POST /api/sessions/:id/moves`             submit a move (auth)
+ * - `GET  /api/users/me/sessions`              list the caller's games (auth)
  *
  * Authentication uses the JWT access token (as opposed to the legacy
  * per-session opaque token). The user id from the token is matched
@@ -24,6 +25,7 @@ import {
   createSessionQuerySchema,
   createSessionResponseSchema,
   errorResponseSchema,
+  getSessionAcceptTokenResponseSchema,
   getSessionResponseSchema,
   listUserSessionsQuerySchema,
   listUserSessionsResponseSchema,
@@ -40,13 +42,13 @@ import {
   engineSideToWire,
 } from "../domain";
 import type { SessionRecord, UserRecord } from "../persistence/store";
-import { generateAcceptToken, hashToken } from "../tokens";
+import { generateAcceptToken } from "../tokens";
 import type { RouteDeps } from "./types";
 
 /**
  * Resolve both participants for a session record so the snapshot
  * builder can attach `(userId, username)` info to the response. A
- * lookup that returns null is fine — that side is either un-joined or
+ * lookup that returns null is fine --  that side is either un-joined or
  * the FK was nulled out by an account deletion.
  */
 async function resolveParticipants(
@@ -71,7 +73,7 @@ export function registerSessionRoutes(
   const typed = app.withTypeProvider<ZodTypeProvider>();
 
   /* ----------------------------------------------------------------- */
-  /* POST /api/sessions — create a new game                             */
+  /* POST /api/sessions --  create a new game                             */
   /* ----------------------------------------------------------------- */
   typed.post(
     "/api/sessions",
@@ -98,7 +100,7 @@ export function registerSessionRoutes(
         id,
         side: side === "gold" ? Side.Gold : Side.Silver,
         creatorUserId: auth.userId,
-        acceptTokenHash: hashToken(acceptToken),
+        acceptToken,
         transcript: createInitialTranscript(),
         now: deps.now(),
       });
@@ -110,7 +112,7 @@ export function registerSessionRoutes(
   );
 
   /* ----------------------------------------------------------------- */
-  /* GET /api/sessions/:id — public snapshot                            */
+  /* GET /api/sessions/:id --  public snapshot                            */
   /* ----------------------------------------------------------------- */
   typed.get(
     "/api/sessions/:id",
@@ -138,7 +140,50 @@ export function registerSessionRoutes(
   );
 
   /* ----------------------------------------------------------------- */
-  /* POST /api/session-accept — second player joins                     */
+  /* GET /api/sessions/:id/accept-token --  accept token for participant  */
+  /* ----------------------------------------------------------------- */
+  typed.get(
+    "/api/sessions/:id/accept-token",
+    {
+      schema: {
+        params: sessionIdParamsSchema,
+        response: {
+          200: getSessionAcceptTokenResponseSchema,
+          401: errorResponseSchema,
+          403: errorResponseSchema,
+          404: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const auth = await requireAccessToken(
+        { userStore: deps.store.users, tokenSigner: deps.tokenSigner },
+        request,
+      );
+      const record = await deps.store.sessions.getById(request.params.id);
+      if (record === null) {
+        return reply.status(404).send({
+          statusCode: 404,
+          error: "Not Found",
+          message: "Session does not exist",
+        });
+      }
+      if (
+        record.goldUserId !== auth.userId &&
+        record.silverUserId !== auth.userId
+      ) {
+        return reply.status(403).send({
+          statusCode: 403,
+          error: "Forbidden",
+          message: "You are not a participant in this session",
+        });
+      }
+      return { acceptToken: record.acceptToken };
+    },
+  );
+
+  /* ----------------------------------------------------------------- */
+  /* POST /api/session-accept --  second player joins                     */
   /* ----------------------------------------------------------------- */
   typed.post(
     "/api/session-accept",
@@ -159,7 +204,7 @@ export function registerSessionRoutes(
         request,
       );
       const updated = await deps.store.sessions.consumeAcceptToken({
-        acceptTokenHash: hashToken(request.body.acceptToken),
+        acceptToken: request.body.acceptToken,
         write: { userId: auth.userId },
         now: deps.now(),
       });
@@ -174,7 +219,7 @@ export function registerSessionRoutes(
           message: "Accept token is invalid or already used",
         });
       }
-      // Joining a game you are already on is silly but legal — we
+      // Joining a game you are already on is silly but legal --  we
       // could detect it and reject, but the persistence layer cleared
       // the accept token before we got here, so a self-join just sets
       // your own user id on the opposite side, which is a valid game
@@ -201,7 +246,7 @@ export function registerSessionRoutes(
   );
 
   /* ----------------------------------------------------------------- */
-  /* POST /api/sessions/:id/moves — submit a move                       */
+  /* POST /api/sessions/:id/moves --  submit a move                       */
   /* ----------------------------------------------------------------- */
   typed.post(
     "/api/sessions/:id/moves",
@@ -296,7 +341,7 @@ export function registerSessionRoutes(
   );
 
   /* ----------------------------------------------------------------- */
-  /* GET /api/users/me/sessions — paginated list of the user's games    */
+  /* GET /api/users/me/sessions --  paginated list of the user's games    */
   /* ----------------------------------------------------------------- */
   typed.get(
     "/api/users/me/sessions",

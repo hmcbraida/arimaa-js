@@ -4,7 +4,7 @@
  * Mirrors `AuthApiClient` in shape: an interface (`GameSessionApiClient`),
  * a production HTTP implementation, and an in-memory fake (in
  * `gameApi.fake.ts`). The split between this and `authApi.ts` keeps
- * concerns separate — auth and gameplay can evolve independently.
+ * concerns separate --  auth and gameplay can evolve independently.
  *
  * Every method except `getSession` requires an access token; getSession
  * is intentionally anonymous because the public-spectator flow exists
@@ -16,6 +16,7 @@ import {
   type AcceptSessionRequest,
   type AcceptSessionResponse,
   type CreateSessionResponse,
+  type GetSessionAcceptTokenResponse,
   type GetSessionResponse,
   type ListUserSessionsQuery,
   type ListUserSessionsResponse,
@@ -24,6 +25,7 @@ import {
   type SubmitMoveResponse,
   acceptSessionResponseSchema,
   createSessionResponseSchema,
+  getSessionAcceptTokenResponseSchema,
   getSessionResponseSchema,
   listUserSessionsResponseSchema,
   submitMoveResponseSchema,
@@ -48,6 +50,16 @@ export interface GameSessionApiClient {
 
   /** Public read of a session (anonymous spectating allowed). */
   getSession(sessionId: string): Promise<GetSessionResponse>;
+
+  /**
+   * Fetch the current accept token for a session. Requires the caller
+   * to be a participant (gold or silver). Returns null once the token
+   * has been redeemed.
+   */
+  getSessionAcceptToken(args: {
+    accessToken: string;
+    sessionId: string;
+  }): Promise<GetSessionAcceptTokenResponse>;
 
   /** Submit a move. */
   submitMove(args: {
@@ -100,6 +112,17 @@ export class HttpGameSessionApiClient implements GameSessionApiClient {
       `${this.baseUrl}/api/sessions/${encodeURIComponent(sessionId)}`,
     );
     return parseOrThrow(response, getSessionResponseSchema);
+  }
+
+  async getSessionAcceptToken(args: {
+    accessToken: string;
+    sessionId: string;
+  }): Promise<GetSessionAcceptTokenResponse> {
+    const response = await fetch(
+      `${this.baseUrl}/api/sessions/${encodeURIComponent(args.sessionId)}/accept-token`,
+      { headers: { authorization: `Bearer ${args.accessToken}` } },
+    );
+    return parseOrThrow(response, getSessionAcceptTokenResponseSchema);
   }
 
   async submitMove(args: {

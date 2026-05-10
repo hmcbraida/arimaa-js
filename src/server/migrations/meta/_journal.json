@@ -8,6 +8,13 @@
       "when": 1778414534912,
       "tag": "0000_vengeful_titanium_man",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1746921600000,
+      "tag": "0001_plaintext_accept_token",
+      "breakpoints": true
     }
   ]
 }

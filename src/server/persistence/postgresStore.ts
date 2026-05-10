@@ -4,7 +4,7 @@
  * Each store is its own class. They share a single Drizzle DB handle
  * which is constructed once at server startup. Methods here are
  * deliberately written to mirror the shape of the abstract interface
- * rather than the shape of the database — this keeps the routes
+ * rather than the shape of the database --  this keeps the routes
  * decoupled from the query layer.
  */
 
@@ -53,7 +53,7 @@ function sessionRowToRecord(row: {
   transcript: string;
   goldUserId: string | null;
   silverUserId: string | null;
-  acceptTokenHash: string | null;
+  acceptToken: string | null;
   pendingSide: "gold" | "silver" | null;
   createdAt: Date;
   updatedAt: Date;
@@ -63,7 +63,7 @@ function sessionRowToRecord(row: {
     transcript: row.transcript,
     goldUserId: row.goldUserId,
     silverUserId: row.silverUserId,
-    acceptTokenHash: row.acceptTokenHash,
+    acceptToken: row.acceptToken,
     pendingSide: pendingSideFromRow(row.pendingSide),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -121,7 +121,7 @@ export class PostgresSessionStore implements SessionStore {
     readonly id: string;
     readonly side: Side;
     readonly creatorUserId: string;
-    readonly acceptTokenHash: string;
+    readonly acceptToken: string;
     readonly transcript: string;
     readonly now: Date;
   }): Promise<SessionRecord> {
@@ -132,7 +132,7 @@ export class PostgresSessionStore implements SessionStore {
         transcript: input.transcript,
         goldUserId: input.side === Side.Gold ? input.creatorUserId : null,
         silverUserId: input.side === Side.Silver ? input.creatorUserId : null,
-        acceptTokenHash: input.acceptTokenHash,
+        acceptToken: input.acceptToken,
         pendingSide: input.side === Side.Gold ? "silver" : "gold",
         createdAt: input.now,
         updatedAt: input.now,
@@ -151,13 +151,13 @@ export class PostgresSessionStore implements SessionStore {
   }
 
   async consumeAcceptToken(input: {
-    readonly acceptTokenHash: string;
+    readonly acceptToken: string;
     readonly write: SessionAcceptWrite;
     readonly now: Date;
   }): Promise<SessionRecord | null> {
     /**
-     * Single-statement update. The `WHERE accept_token_hash IS NOT NULL`
-     * predicate is the one that prevents a second redemption — once
+     * Single-statement update. The `WHERE accept_token IS NOT NULL`
+     * predicate is the one that prevents a second redemption -- once
      * the column is null no rows match, so two concurrent redemptions
      * race for one successful UPDATE.
      */
@@ -166,14 +166,14 @@ export class PostgresSessionStore implements SessionStore {
       .set({
         goldUserId: sql`CASE WHEN ${sessions.pendingSide} = 'gold' THEN ${input.write.userId}::uuid ELSE ${sessions.goldUserId} END`,
         silverUserId: sql`CASE WHEN ${sessions.pendingSide} = 'silver' THEN ${input.write.userId}::uuid ELSE ${sessions.silverUserId} END`,
-        acceptTokenHash: null,
+        acceptToken: null,
         pendingSide: null,
         updatedAt: input.now,
       })
       .where(
         and(
-          eq(sessions.acceptTokenHash, input.acceptTokenHash),
-          isNotNull(sessions.acceptTokenHash),
+          eq(sessions.acceptToken, input.acceptToken),
+          isNotNull(sessions.acceptToken),
         ),
       )
       .returning();

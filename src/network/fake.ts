@@ -7,7 +7,7 @@
  * (returned together by `buildFakeNetwork`) so a registration through
  * `auth.registerUser` populates the user list that `auth.login` reads.
  *
- * The fake is intentionally not a perfect simulation — it skips
+ * The fake is intentionally not a perfect simulation --  it skips
  * password hashing (stores plaintext), uses simple sequential ids,
  * and serves emails through a local recorder. Tests that need a
  * particular failure mode (account-not-activated, account-disabled,
@@ -23,6 +23,7 @@ import type {
   CreateUserRequest,
   CreateUserResponse,
   EmptyResponse,
+  GetSessionAcceptTokenResponse,
   GetSessionResponse,
   ListUserSessionsQuery,
   ListUserSessionsResponse,
@@ -175,7 +176,7 @@ function issueBundle(
 
 /**
  * Find the user owning a given access token. The fake does not do
- * any signature verification — it remembers the last issued token and
+ * any signature verification --  it remembers the last issued token and
  * allows everyone to use it. Tests that need precise scope control
  * should use distinct user-owned tokens via separate logins.
  */
@@ -185,7 +186,7 @@ function userForAccessToken(
 ): FakeUser | null {
   // The fake tags access tokens with the user id when it issues them.
   // Old "lastAccessToken" tracking is only used for assertion ergonomics
-  // — the actual mapping is in the prefix.
+  // --  the actual mapping is in the prefix.
   for (const rt of state.refreshTokens) {
     // If there is exactly one user, return them; otherwise we look up
     // by stash because we issue at most one access token at a time
@@ -196,7 +197,7 @@ function userForAccessToken(
   // multiple users in a test do not get confused. Format: at-NNNNN-userid.
   const parts = accessToken.split("|");
   if (parts.length !== 2) {
-    // Fall back to the most-recently-active user — fine for single-user
+    // Fall back to the most-recently-active user --  fine for single-user
     // tests, which are the common case.
     return state.users[state.users.length - 1] ?? null;
   }
@@ -507,6 +508,22 @@ export class FakeGameSessionApiClient implements GameSessionApiClient {
       throw new ApiError(404, "Session does not exist");
     }
     return buildSnapshot(this.state, session);
+  }
+
+  async getSessionAcceptToken(args: {
+    accessToken: string;
+    sessionId: string;
+  }): Promise<GetSessionAcceptTokenResponse> {
+    const u = userForAccessToken(this.state, args.accessToken);
+    if (u === null) throw new ApiError(401, "unauthorized");
+    const session = this.state.sessions.find((s) => s.id === args.sessionId);
+    if (session === undefined) {
+      throw new ApiError(404, "Session does not exist");
+    }
+    if (session.goldUserId !== u.id && session.silverUserId !== u.id) {
+      throw new ApiError(403, "You are not a participant in this session");
+    }
+    return { acceptToken: session.acceptToken };
   }
 
   async submitMove(_args: {

@@ -51,7 +51,7 @@ export type GameOutcomeReason = z.infer<typeof gameOutcomeReasonSchema>;
  * Refresh-token-redemption failure codes.
  *
  * The frontend uses these to decide which "stuck on login" screen to
- * show — a not-yet-activated account triggers the resend-verification
+ * show --  a not-yet-activated account triggers the resend-verification
  * widget; a disabled account renders an unappealable explanation.
  *
  * `invalid` is the catch-all for "the refresh token is no longer
@@ -177,10 +177,26 @@ export const sessionIdParamsSchema = z.object({
 export type SessionIdParams = z.infer<typeof sessionIdParamsSchema>;
 
 /**
- * `GET /api/sessions/:id` response — exactly the public snapshot.
+ * `GET /api/sessions/:id` response -- exactly the public snapshot.
  */
 export const getSessionResponseSchema = sessionSnapshotSchema;
 export type GetSessionResponse = z.infer<typeof getSessionResponseSchema>;
+
+/**
+ * `GET /api/sessions/:id/accept-token` response.
+ *
+ * Only returned to authenticated participants. The token is null once
+ * the opponent has joined (i.e. it has been redeemed).
+ */
+export const getSessionAcceptTokenResponseSchema = z.object({
+  acceptToken: z
+    .string()
+    .regex(/^\d{8}$/)
+    .nullable(),
+});
+export type GetSessionAcceptTokenResponse = z.infer<
+  typeof getSessionAcceptTokenResponseSchema
+>;
 
 /* --------------------------------------------------------------------- */
 /* User-scoped session list                                              */
@@ -188,7 +204,7 @@ export type GetSessionResponse = z.infer<typeof getSessionResponseSchema>;
 
 /**
  * One row of the authenticated user's game-list view. Smaller than
- * the full snapshot — we drop the transcript and move log because the
+ * the full snapshot --  we drop the transcript and move log because the
  * list view does not need them. The frontend follows up with
  * `GET /api/sessions/:id` to load full data when the user opens a
  * specific game.
@@ -254,7 +270,7 @@ export const usernameSchema = z
 
 /**
  * Email validation. Zod's `.email()` is good enough for our purposes
- * — we treat the address as opaque and rely on the verification email
+ * --  we treat the address as opaque and rely on the verification email
  * round-trip to prove deliverability.
  */
 export const emailSchema = z.email().max(254);
@@ -351,7 +367,7 @@ export type EmptyResponse = z.infer<typeof emptyResponseSchema>;
 /* --------------------------------------------------------------------- */
 
 /**
- * `POST /api/auth/login-sessions` body — username-or-email plus
+ * `POST /api/auth/login-sessions` body --  username-or-email plus
  * password. The server matches `usernameOrEmail` against both the
  * `username` and `emailAddress` columns so a returning user does not
  * need to remember which one they used.
@@ -375,7 +391,7 @@ export type LoginResponse = z.infer<typeof loginResponseSchema>;
  * refresh token authenticates the call (Authorization header is not
  * used for this endpoint specifically because the server treats the
  * refresh token as a body-level credential rather than a bearer
- * credential — bearer credentials are reserved for access tokens).
+ * credential --  bearer credentials are reserved for access tokens).
  */
 export const refreshAccessTokenRequestSchema = z.object({
   refreshToken: z.string().min(1),
@@ -408,7 +424,7 @@ export type RefreshAccessTokenResponse = z.infer<
 >;
 
 /**
- * `DELETE /api/auth/login-sessions/current` body — the refresh token
+ * `DELETE /api/auth/login-sessions/current` body --  the refresh token
  * to revoke. Logout is idempotent.
  */
 export const logoutRequestSchema = z.object({
@@ -450,7 +466,7 @@ export type ResendVerificationRequest = z.infer<
 /* --------------------------------------------------------------------- */
 
 /**
- * `POST /api/passwords/resets` body — the email address to send a
+ * `POST /api/passwords/resets` body --  the email address to send a
  * reset link to. Always returns 204 even when no account matches; we
  * do not leak account existence.
  */
@@ -462,7 +478,7 @@ export type RequestPasswordResetRequest = z.infer<
 >;
 
 /**
- * `POST /api/passwords/resets/{token}` body — the chosen new password.
+ * `POST /api/passwords/resets/{token}` body --  the chosen new password.
  */
 export const completePasswordResetSchema = z.object({
   newPassword: passwordSchema,

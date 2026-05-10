@@ -65,6 +65,9 @@ export function NetworkGameView({ initialSnapshot }: NetworkGameViewProps) {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  // Fetched from the server once per waiting period; null once redeemed.
+  const [acceptToken, setAcceptToken] = useState<string | null>(null);
+
   // Spectators can toggle the board orientation; players are locked to their side.
   const [spectatorFlipped, setSpectatorFlipped] = useState(false);
 
@@ -118,6 +121,28 @@ export function NetworkGameView({ initialSnapshot }: NetworkGameViewProps) {
     };
   }, [initialSnapshot.id, socket, adoptSnapshot]);
 
+  // Fetch the accept token whenever this session is in the waiting state
+  // and the viewer is a participant. Clears when the game starts.
+  useEffect(() => {
+    const at = accessToken();
+    if (snapshot.status !== "waiting" || viewerSide === null || at === null) {
+      setAcceptToken(null);
+      return;
+    }
+    let cancelled = false;
+    gameApi
+      .getSessionAcceptToken({ accessToken: at, sessionId: snapshot.id })
+      .then((res) => {
+        if (!cancelled) setAcceptToken(res.acceptToken);
+      })
+      .catch(() => {
+        // Non-fatal -- the banner just won't show a code.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [gameApi, accessToken, snapshot.id, snapshot.status, viewerSide]);
+
   const myTurn = viewerSide !== null && snapshot.sideToMove === viewerSide;
   const spectator = viewerSide === null;
   const flipped = spectator ? spectatorFlipped : viewerSide === "silver";
@@ -167,7 +192,7 @@ export function NetworkGameView({ initialSnapshot }: NetworkGameViewProps) {
       // Roll the preview steps back so the local engine matches the
       // server's still-current view of the position.
       while (game.undoVisibleStep()) {
-        // Loop body intentionally empty — undoVisibleStep returns
+        // Loop body intentionally empty --  undoVisibleStep returns
         // false when there is nothing left to undo.
       }
       refresh();
@@ -203,33 +228,28 @@ export function NetworkGameView({ initialSnapshot }: NetworkGameViewProps) {
     // Intentional no-op in network mode.
   }, []);
 
-  /**
-   * The accept-code banner is only meaningful for the creator while
-   * the game is still waiting. The accept token is no longer kept on
-   * the client — it was returned exactly once at create time. The
-   * `NewGameModal` would have shown it and our parent navigated us
-   * here. Today we cannot recover it from the snapshot (the server
-   * does not republish the plaintext), so the banner is shown only
-   * if we were navigated in carrying it via history state.
-   *
-   * For the simple in-tab flow, the banner content is approximated
-   * with a "share this URL" hint — pasting the URL into a chat is the
-   * fastest invite path, and it works for any viewer who is signed in.
-   */
   const showWaitingBanner = snapshot.status === "waiting";
 
   return (
     <section className="flex flex-col gap-6">
       {showWaitingBanner && (
         <div className="border border-tn-yellow/50 bg-tn-yellow/10 p-4 text-sm text-tn-fg">
-          Waiting for opponent. Share the eight-digit code shown when you
-          created this game so they can join, or share this URL directly.
+          {viewerSide !== null && acceptToken !== null ? (
+            <>
+              Waiting for opponent. Share this code:{" "}
+              <span className="font-mono font-bold tracking-widest">
+                {acceptToken}
+              </span>
+            </>
+          ) : (
+            "Waiting for opponent."
+          )}
         </div>
       )}
       {snapshot.status === "completed" && (
         <div className="border border-tn-border bg-tn-surface p-4 text-sm text-tn-fg">
-          Game finished — {snapshot.winner === "gold" ? "Gold" : "Silver"} won (
-          {snapshot.reason}).
+          Game finished -- {snapshot.winner === "gold" ? "Gold" : "Silver"} won
+          ({snapshot.reason}).
         </div>
       )}
       {spectator && (

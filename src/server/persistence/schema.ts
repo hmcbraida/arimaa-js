@@ -57,7 +57,7 @@ export const sessionSideEnum = pgEnum("session_side", ["gold", "silver"]);
  * the on-disk shape stays idiomatic while the in-app shape stays
  * consistent with the rest of the codebase.
  *
- * Note that we never write `rCreated` from the application layer — the
+ * Note that we never write `rCreated` from the application layer --  the
  * server-side `defaultNow()` is the only writer. This keeps the row's
  * creation time honest even if a route handler is ever buggy or
  * malicious about clocks.
@@ -94,7 +94,7 @@ export const users = pgTable(
 
     /**
      * Last successful login (refresh-token redemption). Nullable because
-     * a freshly created user has not "logged in" yet — the registration
+     * a freshly created user has not "logged in" yet --  the registration
      * flow issues their first refresh token directly.
      */
     lastLogin: timestamp("last_login", { withTimezone: true }),
@@ -283,16 +283,16 @@ export const sessions = pgTable("sessions", {
   }),
 
   /**
-   * SHA-256 hash of the eight-digit accept code shared with the
-   * invitee. Cleared the moment the code is redeemed — that is how we
-   * encode "single-use" without scheduling a cleanup job.
+   * The eight-digit accept code shared with the invitee. Cleared the
+   * moment the code is redeemed -- that is how we encode "single-use"
+   * without scheduling a cleanup job.
    */
-  acceptTokenHash: text("accept_token_hash"),
+  acceptToken: text("accept_token"),
 
   /**
    * Which side the accept token will install when redeemed. Always the
    * opposite of the creator's chosen side. Cleared together with
-   * `acceptTokenHash`.
+   * `acceptToken`.
    */
   pendingSide: sessionSideEnum("pending_side"),
 
